@@ -1,0 +1,53 @@
+# SecureCodeAI Dockerfile for vLLM Deployment
+# Optimized for RunPod Serverless with DeepSeek-Coder-V2-Lite
+
+FROM runpod/pytorch:2.1.0-py3.10-cuda11.8.0-devel-ubuntu22.04
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    wget \
+    curl \
+    build-essential \
+    python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+COPY requirements.txt /app/
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Install vLLM with optimizations
+RUN pip install --no-cache-dir vllm==0.6.0 flash-attn==2.5.0
+
+# Copy application code
+COPY . /app/
+
+# Download and cache model weights (optional - can use network volume instead)
+# RUN python -c "from transformers import AutoTokenizer, AutoModelForCausalLM; \
+#     AutoTokenizer.from_pretrained('deepseek-ai/DeepSeek-Coder-V2-Lite-Instruct'); \
+#     AutoModelForCausalLM.from_pretrained('deepseek-ai/DeepSeek-Coder-V2-Lite-Instruct')"
+
+# Expose port for API
+EXPOSE 8080
+
+# Environment variables
+ENV MODEL_NAME="deepseek-ai/DeepSeek-Coder-V2-Lite-Instruct"
+ENV QUANTIZATION="awq"
+ENV MAX_MODEL_LEN=8192
+ENV GPU_MEMORY_UTILIZATION=0.95
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
+
+# Run vLLM server
+CMD ["python", "-m", "vllm.entrypoints.openai.api_server", \
+     "--model", "${MODEL_NAME}", \
+     "--quantization", "${QUANTIZATION}", \
+     "--max-model-len", "${MAX_MODEL_LEN}", \
+     "--gpu-memory-utilization", "${GPU_MEMORY_UTILIZATION}", \
+     "--host", "0.0.0.0", \
+     "--port", "8080"]
