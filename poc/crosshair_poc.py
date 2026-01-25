@@ -37,8 +37,9 @@ class CrossHairVerifier:
     def _check_crosshair_installed(self):
         """Verify CrossHair is installed and accessible."""
         try:
+            import sys
             result = subprocess.run(
-                ["crosshair", "--version"],
+                [sys.executable, "-m", "crosshair", "--version"],
                 capture_output=True,
                 text=True,
                 timeout=5
@@ -84,7 +85,7 @@ from typing import Any
             # Run CrossHair check
             result = subprocess.run(
                 [
-                    "crosshair",
+                    sys.executable, "-m", "crosshair",
                     "check",
                     "--per_condition_timeout", str(self.timeout),
                     temp_file

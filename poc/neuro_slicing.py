@@ -23,41 +23,67 @@ from crosshair_poc import CrossHairVerifier, VerificationResult
 class NeuroSlicingEngine:
     """LLM-guided code slicing and contract generation for symbolic execution."""
     
-    def __init__(self, model_name: str = "deepseek-ai/DeepSeek-Coder-V2-Lite-Instruct", use_4bit: bool = True):
-        """Initialize with DeepSeek model."""
+    def __init__(self, model_name: str = "deepseek-coder-v2-lite-instruct", use_4bit: bool = True, use_ollama: bool = True):
+        """Initialize with DeepSeek model (Ollama or Transformers)."""
         print(f"🔧 Initializing Neuro-Slicing Engine...")
         
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
+        self.use_ollama = use_ollama
+        self.model_name = model_name
         
-        if use_4bit:
-            bnb_config = BitsAndBytesConfig(
-                load_in_4bit=True,
-                bnb_4bit_quant_type="nf4",
-                bnb_4bit_compute_dtype=torch.float16,
-                bnb_4bit_use_double_quant=True,
-            )
-            self.model = AutoModelForCausalLM.from_pretrained(
-                model_name,
-                quantization_config=bnb_config,
-                device_map="auto",
-                trust_remote_code=True,
-                torch_dtype=torch.float16,
-            )
+        if self.use_ollama:
+            self.api_url = os.environ.get("OLLAMA_API", "http://localhost:11434/api/generate")
+            print(f"🔧 Using Ollama backend: {self.model_name}")
         else:
-            self.model = AutoModelForCausalLM.from_pretrained(
-                model_name,
-                device_map="auto",
-                trust_remote_code=True,
-                torch_dtype=torch.float16,
-            )
-        
-        print(f"✅ Model loaded")
+            self.tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
+            
+            if use_4bit:
+                bnb_config = BitsAndBytesConfig(
+                    load_in_4bit=True,
+                    bnb_4bit_quant_type="nf4",
+                    bnb_4bit_compute_dtype=torch.float16,
+                    bnb_4bit_use_double_quant=True,
+                )
+                self.model = AutoModelForCausalLM.from_pretrained(
+                    model_name,
+                    quantization_config=bnb_config,
+                    device_map="auto",
+                    trust_remote_code=True,
+                    torch_dtype=torch.float16,
+                )
+            else:
+                self.model = AutoModelForCausalLM.from_pretrained(
+                    model_name,
+                    device_map="auto",
+                    trust_remote_code=True,
+                    torch_dtype=torch.float16,
+                )
+            print(f"✅ Model loaded (Transformers)")
         
         # Initialize CrossHair verifier
         self.verifier = CrossHairVerifier(timeout=30)
     
     def _generate(self, prompt: str, max_tokens: int = 512) -> str:
         """Generate LLM response."""
+        if self.use_ollama:
+            payload = {
+                "model": self.model_name,
+                "prompt": prompt,
+                "stream": False,
+                "options": {
+                    "temperature": 0.2,
+                    "num_ctx": 4096,
+                },
+            }
+            try:
+                import requests
+                resp = requests.post(self.api_url, json=payload, timeout=300)
+                if resp.status_code == 200:
+                    return resp.json().get("response", "").strip()
+                return f"Error: {resp.text}"
+            except Exception as e:
+                return f"Error contacting Ollama: {e}"
+        
+        # Fallback to transformers
         messages = [{"role": "user", "content": prompt}]
         
         inputs = self.tokenizer.apply_chat_template(
@@ -306,7 +332,7 @@ def create_user(username, email, password):
     print("="*70)
     
     # Initialize neuro-slicing engine
-    engine = NeuroSlicingEngine(use_4bit=not args.no_quantization)
+    engine = NeuroSlicingEngine(use_4bit=not args.no_quantization, use_ollama=True)
     
     # Run analysis
     result = engine.analyze_and_patch(code, vulnerability_type=args.vuln_type)
