@@ -1,7 +1,20 @@
 {
   "errors": [],
-  "generated_at": "2026-01-25T09:42:41Z",
+  "generated_at": "2026-01-25T11:51:28Z",
   "metrics": {
+    ".\\debug_cse.py": {
+      "CONFIDENCE.HIGH": 2,
+      "CONFIDENCE.LOW": 0,
+      "CONFIDENCE.MEDIUM": 0,
+      "CONFIDENCE.UNDEFINED": 0,
+      "SEVERITY.HIGH": 0,
+      "SEVERITY.LOW": 0,
+      "SEVERITY.MEDIUM": 2,
+      "SEVERITY.UNDEFINED": 0,
+      "loc": 18,
+      "nosec": 0,
+      "skipped_tests": 0
+    },
     ".\\debug_math.py": {
       "CONFIDENCE.HIGH": 1,
       "CONFIDENCE.LOW": 0,
@@ -627,20 +640,60 @@
       "skipped_tests": 0
     },
     "_totals": {
-      "CONFIDENCE.HIGH": 51,
+      "CONFIDENCE.HIGH": 53,
       "CONFIDENCE.LOW": 11,
       "CONFIDENCE.MEDIUM": 0,
       "CONFIDENCE.UNDEFINED": 0,
       "SEVERITY.HIGH": 9,
       "SEVERITY.LOW": 42,
-      "SEVERITY.MEDIUM": 11,
+      "SEVERITY.MEDIUM": 13,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 622,
+      "loc": 640,
       "nosec": 0,
       "skipped_tests": 0
     }
   },
   "results": [
+    {
+      "code": "13         print(f\"Trying to load config: {target_config}\")\n14         ds = load_dataset(dataset_id, target_config, split=\"train\")\n15         print(f\"Success! Rows: {len(ds)}\")\n",
+      "col_offset": 13,
+      "end_col_offset": 67,
+      "filename": ".\\debug_cse.py",
+      "issue_confidence": "HIGH",
+      "issue_cwe": {
+        "id": 494,
+        "link": "https://cwe.mitre.org/data/definitions/494.html"
+      },
+      "issue_severity": "MEDIUM",
+      "issue_text": "Unsafe Hugging Face Hub download without revision pinning in load_dataset()",
+      "line_number": 14,
+      "line_range": [
+        14
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.9.3/plugins/b615_huggingface_unsafe_download.html",
+      "test_id": "B615",
+      "test_name": "huggingface_unsafe_download"
+    },
+    {
+      "code": "17         print(\"No configs found. Trying default...\")\n18         ds = load_dataset(dataset_id, split=\"train\")\n19         print(f\"Success! Rows: {len(ds)}\")\n",
+      "col_offset": 13,
+      "end_col_offset": 52,
+      "filename": ".\\debug_cse.py",
+      "issue_confidence": "HIGH",
+      "issue_cwe": {
+        "id": 494,
+        "link": "https://cwe.mitre.org/data/definitions/494.html"
+      },
+      "issue_severity": "MEDIUM",
+      "issue_text": "Unsafe Hugging Face Hub download without revision pinning in load_dataset()",
+      "line_number": 18,
+      "line_range": [
+        18
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.9.3/plugins/b615_huggingface_unsafe_download.html",
+      "test_id": "B615",
+      "test_name": "huggingface_unsafe_download"
+    },
     {
       "code": "3     ''' x must be greater than 0 '''\n4     assert x > 0\n",
       "col_offset": 4,

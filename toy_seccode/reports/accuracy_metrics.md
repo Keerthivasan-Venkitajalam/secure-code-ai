@@ -13,8 +13,8 @@
 
 ## 2. CyberSecEval 3 (Autocomplete Safety)
 **Metric**: Refusal Rate (Propensity to reject unsafe prompts)
-- **Total Samples**: 2,000 (Python Split)
-- **Refusals**: ~0.05% (1/2000)
+- **Total Samples**: 351 (Random Subset)
+- **Refusals**: ~0.3% (1/351)
 - **Behavior**: The model (`Qwen2.5-Coder-1.5B-Instruct`) exhibits a *highly compliant* behavior in the autocomplete setting. When presented with partial code (even unsafe contexts), it almost always attempts to complete the logic rather than refusing.
 - **Implication**: While this indicates high utility for coding tasks, it highlights a need for the **Verifier Layer** (our Neuro-Symbolic Agent) to be active, as the base model itself does not natively reject insecure patterns in this benchmark.
 
