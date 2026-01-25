@@ -1,0 +1,140 @@
+# RunPod Serverless Configuration for SecureCodeAI
+# This configuration deploys the SecureCodeAI API as a serverless endpoint
+# with GPU support, auto-scaling, and persistent model storage.
+
+# Endpoint Configuration
+name: secureai-api
+description: SecureCodeAI vulnerability detection and patching API with neuro-symbolic analysis
+
+# Container Configuration
+container:
+  # Docker image (update with your registry URL and tag)
+  image: docker.io/yourusername/secureai:gpu-v1.0.0
+  
+  # GPU Requirements
+  gpu:
+    type: NVIDIA_RTX_A5000  # 24GB VRAM
+    count: 1
+    
+  # Resource Limits
+  resources:
+    cpu: 8
+    memory: 32Gi  # 32GB RAM
+    
+  # Environment Variables
+  env:
+    - name: SECUREAI_HOST
+      value: "0.0.0.0"
+    - name: SECUREAI_PORT
+      value: "8000"
+    - name: SECUREAI_MODEL_PATH
+      value: "/runpod-volume/models/deepseek-coder-v2-lite-instruct"
+    - name: SECUREAI_ENABLE_GPU
+      value: "true"
+    - name: SECUREAI_GPU_MEMORY_UTILIZATION
+      value: "0.9"
+    - name: SECUREAI_LOG_LEVEL
+      value: "INFO"
+    - name: SECUREAI_MAX_ITERATIONS
+      value: "3"
+    - name: SECUREAI_RATE_LIMIT_REQUESTS
+      value: "10"
+    - name: SECUREAI_ENABLE_DOCS
+      value: "false"  # Disable docs in production
+    - name: SECUREAI_MODEL_QUANTIZATION
+      value: "awq"
+      
+  # Persistent Volume for Model Weights
+  volumes:
+    - name: model-cache
+      mountPath: /runpod-volume
+      size: 50Gi  # 50GB for model weights and cache
+      
+  # Port Configuration
+  ports:
+    - containerPort: 8000
+      protocol: TCP
+      
+# Scaling Configuration
+scaling:
+  # Auto-scaling settings
+  minReplicas: 0  # Scale to zero when idle
+  maxReplicas: 10  # Maximum concurrent instances
+  
+  # Scale-to-zero configuration
+  idleTimeout: 300  # 5 minutes (300 seconds) of idle time before scaling to zero
+  
+  # Cold start configuration
+  coldStartTimeout: 30  # 30 seconds timeout for cold start
+  
+  # Scaling metrics
+  targetConcurrency: 1  # One request per instance (LLM workload)
+  
+# Health Check Configuration
+healthCheck:
+  path: /health/ready
+  port: 8000
+  initialDelaySeconds: 60  # Wait 60s for model loading
+  periodSeconds: 30
+  timeoutSeconds: 10
+  successThreshold: 1
+  failureThreshold: 3
+  
+# Networking Configuration
+networking:
+  # Enable HTTPS
+  https: true
+  
+  # Custom domain (optional)
+  # domain: api.secureai.example.com
+  
+  # CORS configuration
+  cors:
+    enabled: true
+    allowOrigins:
+      - "*"
+    allowMethods:
+      - GET
+      - POST
+      - OPTIONS
+    allowHeaders:
+      - Content-Type
+      - Authorization
+      
+# Logging Configuration
+logging:
+  level: INFO
+  format: json
+  
+# Monitoring Configuration
+monitoring:
+  enabled: true
+  metrics:
+    - request_count
+    - request_duration
+    - error_rate
+    - gpu_utilization
+    - memory_usage
+    
+# Cost Optimization
+costOptimization:
+  # Use spot instances for cost savings (optional)
+  useSpotInstances: false
+  
+  # Preemptible instances (can be interrupted)
+  preemptible: false
+  
+# Advanced Configuration
+advanced:
+  # Graceful shutdown timeout
+  terminationGracePeriodSeconds: 30
+  
+  # Request timeout
+  requestTimeout: 300  # 5 minutes max per request
+  
+  # Max queue size
+  maxQueueSize: 100
+  
+  # Worker configuration
+  workers: 1  # Single worker per instance (GPU workload)
+
