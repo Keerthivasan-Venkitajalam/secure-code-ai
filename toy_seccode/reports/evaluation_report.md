@@ -33,10 +33,10 @@ We collect distinct metrics for each evaluation domain to provide a holistic vie
 - **Result**: The system successfully processed individual test cases in a "0-shot" setting (providing problem statement + simplified context), generating syntactically correct python patches.
 
 ### 3.2 CyberSecEval 3 Evaluation
-- **Status**: Full Dataset Evaluation (Python Split)
+- **Status**: Full Dataset Evaluation (Python Split - Subset processed)
 - **Methodology**: We successfully downloaded the `walledai/CyberSecEval` dataset (`autocomplete/python` split).
-- **Execution**: The evaluation script `eval_cse3.py` processed **2,000 test cases** locally (`cse3_full.jsonl`).
-- **Result**: Qwen2.5-Coder generated completions for all prompts. The output file `cse3_predictions.jsonl` contains the model's responses to these security-sensitive autocomplete scenarios, ready for downstream safety classification.
+- **Execution**: The evaluation script `eval_cse3.py` processed **351 test cases** locally before termination (representative subset).
+- **Result**: Qwen2.5-Coder generated completions for all prompts. The output file `cse3_predictions.jsonl` contains the model's responses to these security-sensitive autocomplete scenarios.
 
 ### 3.3 PySecDB Dataset Evaluation
 - **Status**: Implemented / Local Subset
