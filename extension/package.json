@@ -1,0 +1,106 @@
+{
+  "name": "securecodai",
+  "displayName": "SecureCodeAI",
+  "description": "Neuro-Symbolic Vulnerability Detection and Automated Patching",
+  "version": "0.1.0",
+  "publisher": "securecodai",
+  "icon": "images/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Keerthivasan-Venkitajalam/secure-code-ai"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Linters",
+    "Programming Languages",
+    "Other"
+  ],
+  "keywords": [
+    "security",
+    "vulnerability",
+    "python",
+    "ai",
+    "llm",
+    "static-analysis"
+  ],
+  "activationEvents": [
+    "onLanguage:python"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "securecodai.analyzeFile",
+        "title": "SecureCodeAI: Analyze Current File"
+      },
+      {
+        "command": "securecodai.analyzeWorkspace",
+        "title": "SecureCodeAI: Analyze Workspace"
+      },
+      {
+        "command": "securecodai.applyPatch",
+        "title": "SecureCodeAI: Apply Suggested Patch"
+      },
+      {
+        "command": "securecodai.configure",
+        "title": "SecureCodeAI: Configure API Endpoint"
+      }
+    ],
+    "configuration": {
+      "title": "SecureCodeAI",
+      "properties": {
+        "securecodai.apiEndpoint": {
+          "type": "string",
+          "default": "http://localhost:8000",
+          "description": "SecureCodeAI API endpoint URL"
+        },
+        "securecodai.maxIterations": {
+          "type": "number",
+          "default": 3,
+          "description": "Maximum patch refinement iterations"
+        },
+        "securecodai.autoAnalyze": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically analyze files on save"
+        },
+        "securecodai.showInlineHints": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show inline vulnerability hints"
+        }
+      }
+    },
+    "menus": {
+      "editor/context": [
+        {
+          "command": "securecodai.analyzeFile",
+          "when": "editorLangId == python",
+          "group": "securecodai"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile",
+    "lint": "eslint src --ext ts",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.x",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^6.x",
+    "@typescript-eslint/parser": "^6.x",
+    "eslint": "^8.x",
+    "typescript": "^5.3.0",
+    "@vscode/vsce": "^2.22.0"
+  },
+  "dependencies": {
+    "axios": "^1.6.0"
+  }
+}
