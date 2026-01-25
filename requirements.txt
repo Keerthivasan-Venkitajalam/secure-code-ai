@@ -5,7 +5,7 @@ transformers>=4.45.0
 torch>=2.1.0
 accelerate>=0.25.0
 bitsandbytes>=0.41.0  # For 4-bit quantization
-vllm>=0.6.0  # Fast inference engine
+# vllm>=0.6.0  # Fast inference engine (Linux only)
 
 # Agentic Framework
 langgraph>=0.2.0

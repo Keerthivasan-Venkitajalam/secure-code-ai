@@ -11,6 +11,8 @@ from .nodes.scanner import ScannerAgent
 from .nodes.speculator import SpeculatorAgent
 from .nodes.symbot import SymBotAgent
 from .nodes.patcher import PatcherAgent
+from .nodes.binary_analyzer import BinaryAnalyzerAgent
+from .nodes.smart_contract import SmartContractAgent
 
 
 def route_after_scan(state: AgentState) -> Literal["speculator", "end"]:
@@ -56,7 +58,11 @@ def create_workflow(
     speculator: SpeculatorAgent,
     symbot: SymBotAgent,
     patcher: PatcherAgent,
+    binary_analyzer: BinaryAnalyzerAgent,
+    smart_contract_agent: SmartContractAgent,
 ) -> StateGraph:
+
+
     """
     Create the SecureCodeAI LangGraph workflow.
     
@@ -84,9 +90,28 @@ def create_workflow(
     workflow.add_node("speculator", speculator.execute)
     workflow.add_node("symbot", symbot.execute)
     workflow.add_node("patcher", patcher.execute)
+    workflow.add_node("binary_analyzer", binary_analyzer.execute)
+    workflow.add_node("smart_contract_agent", smart_contract_agent.execute)
     
+    def route_start(state: AgentState) -> Literal["scanner", "binary_analyzer", "smart_contract_agent"]:
+        if state.get("binary_path"):
+            return "binary_analyzer"
+        if state.get("file_path", "").endswith(".sol"):
+            return "smart_contract_agent"
+        return "scanner"
+
     # Set entry point
-    workflow.set_entry_point("scanner")
+    workflow.set_conditional_entry_point(
+        route_start,
+        {
+            "scanner": "scanner",
+            "binary_analyzer": "binary_analyzer",
+            "smart_contract_agent": "smart_contract_agent"
+        }
+    )
+    
+    workflow.add_edge("binary_analyzer", END)
+    workflow.add_edge("smart_contract_agent", END)
     
     # Add conditional edges
     workflow.add_conditional_edges(
@@ -139,9 +164,11 @@ def run_analysis(code: str, file_path: str = "unknown") -> AgentState:
     speculator = SpeculatorAgent()
     symbot = SymBotAgent()
     patcher = PatcherAgent()
+    binary_analyzer = BinaryAnalyzerAgent()
+    smart_contract_agent = SmartContractAgent()
     
     # Create workflow
-    app = create_workflow(scanner, speculator, symbot, patcher)
+    app = create_workflow(scanner, speculator, symbot, patcher, binary_analyzer, smart_contract_agent)
     
     # Initialize state
     initial_state: AgentState = {

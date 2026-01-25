@@ -53,6 +53,7 @@ class AgentState(TypedDict, total=False):
     # Input
     code: str  # Full source code to analyze
     file_path: str  # Path to the file being analyzed
+    binary_path: Optional[str]  # Path to the compiled binary (if applicable)
     
     # Scanner Agent output
     vulnerabilities: List[Vulnerability]  # Detected vulnerability hotspots
