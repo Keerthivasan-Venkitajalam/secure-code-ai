@@ -16,9 +16,13 @@ from agent.nodes.scanner import ScannerAgent
 from agent.nodes.speculator import SpeculatorAgent
 from agent.nodes.symbot import SymBotAgent
 from agent.nodes.patcher import PatcherAgent
+from agent.nodes.binary_analyzer import BinaryAnalyzerAgent
+from agent.nodes.smart_contract import SmartContractAgent
 from agent.llm_client import LLMClient
 
-from .vllm_client import VLLMClient
+from api.vllm_client import initialize_vllm, get_vllm_client, VLLMClient
+from api.local_llm_client import LlamaCppClient
+from api.config import config
 from .models import AnalyzeResponse, VulnerabilityResponse, PatchResponse
 
 
@@ -55,13 +59,21 @@ class WorkflowOrchestrator:
             return
         
         try:
-            # Create LLMClient if vLLM client is available
-            if self.vllm_client:
-                logger.info("Creating LLMClient for agent intelligence...")
-                self.llm_client = LLMClient(self.vllm_client)
-                logger.info("LLMClient created successfully")
-            else:
-                logger.warning("No vLLM client available - agents will use template-based logic")
+            # Initialize LLM client
+            try:
+                if config.use_local_llm:
+                    logger.info("Initializing Local GGUF Client...")
+                    self.llm_client = LlamaCppClient()
+                    self.llm_client.initialize()
+                else:
+                    logger.info("Initializing vLLM Client...")
+                    self.llm_client = get_vllm_client()
+                    if not self.llm_client.is_initialized():
+                        self.llm_client.initialize()
+            except Exception as e:
+                logger.warning(f"Failed to initialize LLM client: {e}")
+                logger.warning("Continuing without LLM intelligence (basic mode)")
+                self.llm_client = None
             
             # Initialize agents with LLMClient
             # Scanner, Speculator, and Patcher get LLM client for intelligence
@@ -70,11 +82,13 @@ class WorkflowOrchestrator:
             speculator = SpeculatorAgent(llm_client=self.llm_client)
             symbot = SymBotAgent()
             patcher = PatcherAgent(llm_client=self.llm_client)
+            binary_analyzer = BinaryAnalyzerAgent()
+            smart_contract_agent = SmartContractAgent()
             
             logger.info("Agents initialized with LLM intelligence")
             
             # Create workflow
-            self._workflow = create_workflow(scanner, speculator, symbot, patcher)
+            self._workflow = create_workflow(scanner, speculator, symbot, patcher, binary_analyzer, smart_contract_agent)
             
             self._initialized = True
             logger.info("Workflow orchestrator initialized successfully")

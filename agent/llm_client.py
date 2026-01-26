@@ -16,6 +16,18 @@ from tenacity import (
 )
 
 from api.vllm_client import VLLMClient, VLLMInferenceError
+# Optional imports to allow running without vLLM
+try:
+    from vllm import SamplingParams
+except ImportError:
+    SamplingParams = None
+
+# Optional imports to allow running without vLLM
+try:
+    from vllm import SamplingParams
+except ImportError:
+    SamplingParams = None
+
 
 
 logger = logging.getLogger(__name__)
@@ -77,19 +89,27 @@ class LLMClient:
             temperature = self.default_temperature
         
         # Update sampling parameters temporarily
-        original_params = self.vllm_client.sampling_params
+        original_params = None
+        if hasattr(self.vllm_client, "sampling_params"):
+            original_params = self.vllm_client.sampling_params
         
         try:
-            # Import vLLM SamplingParams
-            from vllm import SamplingParams
-            
-            # Create new sampling params with specified values
-            self.vllm_client.sampling_params = SamplingParams(
-                temperature=temperature,
-                top_p=self.default_top_p,
-                max_tokens=max_tokens,
-                stop=None
-            )
+            # Handle vLLM client
+            if hasattr(self.vllm_client, "sampling_params") and SamplingParams is not None:
+                # Create new sampling params with specified values
+                self.vllm_client.sampling_params = SamplingParams(
+                    temperature=temperature,
+                    top_p=self.default_top_p,
+                    max_tokens=max_tokens,
+                    stop=None
+                )
+            # Handle Local/LlamaCpp client (duck typing)
+            elif hasattr(self.vllm_client, "update_params"):
+                self.vllm_client.update_params(
+                    temperature=temperature,
+                    max_tokens=max_tokens
+                )
+
             
             # Generate using vLLM client
             result = self.vllm_client.generate(prompt)
@@ -98,7 +118,8 @@ class LLMClient:
             
         finally:
             # Restore original sampling parameters
-            self.vllm_client.sampling_params = original_params
+            if hasattr(self.vllm_client, "sampling_params") and SamplingParams is not None and original_params is not None:
+                self.vllm_client.sampling_params = original_params
     
     async def generate_async(self, prompt: str) -> str:
         """

@@ -41,6 +41,7 @@ class ScannerAgent:
                 r"execute\s*\(\s*f['\"].*?\{.*?\}",  # f-string in execute()
                 r"execute\s*\(\s*['\"].*?\%",  # % formatting in execute()
                 r"execute\s*\(\s*.*?\+",  # String concatenation in execute()
+                r"f['\"].*?SELECT.*?FROM.*?\{.*?\}",  # Generic SQL f-string
             ],
             "Command Injection": [
                 r"subprocess\.run\s*\(.*?shell\s*=\s*True",

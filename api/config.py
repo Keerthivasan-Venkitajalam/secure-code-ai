@@ -25,8 +25,12 @@ class APIConfig(BaseSettings):
     
     # Model Configuration
     model_path: str = Field(
-        default="/models/deepseek-coder-v2-lite-instruct",
-        description="Path to model weights"
+        default="models/deepseek-q2/DeepSeek-Coder-V2-Lite-Instruct-Q2_K.gguf",
+        description="Path to model weights (GGUF or vLLM)"
+    )
+    use_local_llm: bool = Field(
+        default=False,
+        description="Use local GGUF model with llama.cpp instead of vLLM"
     )
     model_quantization: str = Field(
         default="awq",
