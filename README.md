@@ -10,7 +10,7 @@ SecureCodeAI combines Large Language Models (LLMs) with symbolic execution to au
 - 🔬 **Formal Verification** - Uses symbolic execution (CrossHair) to verify vulnerabilities
 - 🔧 **Automated Patching** - Generates and verifies security patches
 - 🤖 **Multi-Agent Architecture** - Coordinates Scanner, Speculator, SymBot, and Patcher agents
-- 🚀 **High-Performance Inference** - Powered by vLLM for fast model serving
+- 🚀 **High-Performance Inference** - Powered by Google Gemini 2.5 Flash (Cloud) or vLLM/LlamaCpp (Local)
 - 🐳 **Docker Containerized** - Easy deployment with Docker and docker-compose
 - ☁️ **Serverless Ready** - Optimized for RunPod Serverless deployment
 - 📊 **Production-Ready API** - FastAPI with health checks, rate limiting, and monitoring
@@ -63,6 +63,23 @@ SecureCodeAI uses intelligent LLM-powered agents that combine semantic understan
 - **SymBot Agent**: Performs symbolic execution using CrossHair to verify contracts
 - **Patcher Agent**: Generates secure patches from counterexamples with self-correction loops
 
+## Configuration
+
+SecureCodeAI supports two modes of operation:
+
+### 1. Cloud Mode (Recommended)
+Uses Google's Gemini 2.5 Flash model. Fastest and most reliable.
+
+- Get an API key from [Google AI Studio](https://aistudio.google.com/app/apikey)
+- Set `SECUREAI_USE_GEMINI=true`
+- Set `SECUREAI_GEMINI_API_KEY=your_key_here`
+
+### 2. Local Mode
+Uses local GGUF models (DeepSeek-Coder). Private but slower.
+
+- **Windows**: Uses `ctransformers` or `llama-cpp-python` (CPU/GPU)
+- **Linux**: Uses `vLLM` (High-performance GPU)
+
 For detailed information about the LLM agent architecture, prompt templates, self-correction loops, and neuro-slicing algorithm, see [LLM_AGENT_ARCHITECTURE.md](LLM_AGENT_ARCHITECTURE.md).
 
 ## Quick Start
@@ -89,15 +106,18 @@ conda activate secureai
 pip install -r requirements.txt
 
 # Download model (optional - can be done automatically on first run)
-huggingface-cli download bartowski/DeepSeek-Coder-V2-Lite-Instruct-GGUF \
-  --include "DeepSeek-Coder-V2-Lite-Instruct-Q2_K.gguf" \
-  --local-dir models/deepseek-q2
+hf download bartowski/DeepSeek-Coder-V2-Lite-Instruct-GGUF --include "DeepSeek-Coder-V2-Lite-Instruct-Q2_K.gguf" --local-dir models/deepseek-q2
 ```
 
 ### Running the API Server
 
 ```bash
 # Start the API server
+python -m api.server
+
+# Start with Gemini (Recommended)
+set SECUREAI_USE_GEMINI=true
+set SECUREAI_GEMINI_API_KEY=your_api_key
 python -m api.server
 
 # Or with custom configuration
