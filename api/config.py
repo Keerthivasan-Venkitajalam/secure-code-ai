@@ -32,6 +32,14 @@ class APIConfig(BaseSettings):
         default=False,
         description="Use local GGUF model with llama.cpp instead of vLLM"
     )
+    use_gemini: bool = Field(
+        default=False,
+        description="Use Google Gemini API for inference"
+    )
+    gemini_api_key: Optional[str] = Field(
+        default=None,
+        description="Google Gemini API Key"
+    )
     model_quantization: str = Field(
         default="awq",
         description="Model quantization method (awq, gptq, none)"
@@ -84,7 +92,7 @@ class APIConfig(BaseSettings):
     
     # Rate Limiting
     rate_limit_requests: int = Field(
-        default=10,
+        default=1000,
         ge=1,
         description="Maximum requests per minute per client"
     )

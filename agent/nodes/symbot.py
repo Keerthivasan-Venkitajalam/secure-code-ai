@@ -56,6 +56,9 @@ class SymBotAgent:
                 if result.counterexample:
                     state["logs"].append(f"SymBot Agent: Vulnerability confirmed - {contract.vuln_type}")
                     break  # Process one vulnerability at a time
+                elif result.error_message:
+                    logger.error(f"SymBot verification failed: {result.error_message}")
+                    state["errors"].append(f"SymBot Error: {result.error_message}")
                 else:
                     state["logs"].append(f"SymBot Agent: No vulnerability found for {contract.vuln_type}")
         

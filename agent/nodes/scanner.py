@@ -364,58 +364,83 @@ Example: TRUE_POSITIVE: 0.9
             return 1
     
     def _scan_ast(self, tree: ast.AST, file_path: str) -> List[Vulnerability]:
-        """Scan AST for vulnerable patterns."""
+        """Scan AST for vulnerable patterns with basic data flow analysis."""
         vulnerabilities = []
         
         for node in ast.walk(tree):
-            # Check for dangerous function calls
-            if isinstance(node, ast.Call):
-                if isinstance(node.func, ast.Name):
-                    func_name = node.func.id
-                    
-                    # eval/exec detection
-                    if func_name in ['eval', 'exec']:
-                        vulnerabilities.append(Vulnerability(
-                            location=f"{file_path}:{node.lineno}",
-                            vuln_type="Code Injection",
-                            severity="CRITICAL",
-                            description=f"Use of dangerous function: {func_name}()",
-                            confidence=0.9
-                        ))
+            # Track variables that hold potentially dangerous strings within function scopes
+            if isinstance(node, ast.FunctionDef):
+                tainted_vars = set()
                 
-                # Check for subprocess/os.system with shell=True
-                if isinstance(node.func, ast.Attribute):
-                    if node.func.attr in ['system', 'popen']:
-                        vulnerabilities.append(Vulnerability(
-                            location=f"{file_path}:{node.lineno}",
-                            vuln_type="Command Injection",
-                            severity="HIGH",
-                            description=f"Dangerous system call: {node.func.attr}",
-                            confidence=0.85
-                        ))
-            
-            # Check for SQL string formatting
-            if isinstance(node, ast.Call):
-                if isinstance(node.func, ast.Attribute) and node.func.attr == 'execute':
-                    # Check if argument uses f-string or string concatenation
-                    if node.args:
-                        arg = node.args[0]
-                        if isinstance(arg, ast.JoinedStr):  # f-string
-                            vulnerabilities.append(Vulnerability(
-                                location=f"{file_path}:{node.lineno}",
-                                vuln_type="SQL Injection",
-                                severity="HIGH",
-                                description="SQL query uses f-string formatting",
-                                confidence=0.9
-                            ))
-                        elif isinstance(arg, ast.BinOp) and isinstance(arg.op, ast.Add):  # String concatenation
-                            vulnerabilities.append(Vulnerability(
-                                location=f"{file_path}:{node.lineno}",
-                                vuln_type="SQL Injection",
-                                severity="HIGH",
-                                description="SQL query uses string concatenation",
-                                confidence=0.85
-                            ))
+                for child in ast.walk(node):
+                    # Track assignments of f-strings or string concatenation
+                    if isinstance(child, ast.Assign):
+                        for target in child.targets:
+                            if isinstance(target, ast.Name):
+                                # Check value being assigned
+                                if isinstance(child.value, ast.JoinedStr):  # f-string
+                                    tainted_vars.add(target.id)
+                                elif isinstance(child.value, ast.BinOp) and isinstance(child.value.op, ast.Add):  # Concatenation
+                                    tainted_vars.add(target.id)
+                    
+                    # Check for dangerous function calls
+                    if isinstance(child, ast.Call):
+                        if isinstance(child.func, ast.Name):
+                            func_name = child.func.id
+                            
+                            # eval/exec detection
+                            if func_name in ['eval', 'exec']:
+                                vulnerabilities.append(Vulnerability(
+                                    location=f"{file_path}:{child.lineno}",
+                                    vuln_type="Code Injection",
+                                    severity="CRITICAL",
+                                    description=f"Use of dangerous function: {func_name}()",
+                                    confidence=0.9
+                                ))
+                        
+                        # Check for subprocess/os.system with shell=True
+                        if isinstance(child.func, ast.Attribute):
+                            if child.func.attr in ['system', 'popen']:
+                                vulnerabilities.append(Vulnerability(
+                                    location=f"{file_path}:{child.lineno}",
+                                    vuln_type="Command Injection",
+                                    severity="HIGH",
+                                    description=f"Dangerous system call: {child.func.attr}",
+                                    confidence=0.85
+                                ))
+                        
+                        # Check for SQL usage
+                        if isinstance(child.func, ast.Attribute) and child.func.attr == 'execute':
+                            if child.args:
+                                arg = child.args[0]
+                                
+                                # Direct usage: execute(f"...") or execute("..." + ...)
+                                if isinstance(arg, ast.JoinedStr):
+                                    vulnerabilities.append(Vulnerability(
+                                        location=f"{file_path}:{child.lineno}",
+                                        vuln_type="SQL Injection",
+                                        severity="HIGH",
+                                        description="SQL query uses f-string formatting",
+                                        confidence=0.9
+                                    ))
+                                elif isinstance(arg, ast.BinOp) and isinstance(arg.op, ast.Add):
+                                    vulnerabilities.append(Vulnerability(
+                                        location=f"{file_path}:{child.lineno}",
+                                        vuln_type="SQL Injection",
+                                        severity="HIGH",
+                                        description="SQL query uses string concatenation",
+                                        confidence=0.85
+                                    ))
+                                
+                                # Indirect usage: execute(query) where query is tainted
+                                elif isinstance(arg, ast.Name) and arg.id in tainted_vars:
+                                    vulnerabilities.append(Vulnerability(
+                                        location=f"{file_path}:{child.lineno}",
+                                        vuln_type="SQL Injection",
+                                        severity="HIGH",
+                                        description=f"SQL query variable '{arg.id}' constructed via string formatting",
+                                        confidence=0.85
+                                    ))
         
         return vulnerabilities
     

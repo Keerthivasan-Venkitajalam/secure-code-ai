@@ -7,6 +7,7 @@ accelerate>=0.25.0
 bitsandbytes>=0.41.0  # For 4-bit quantization
 # vllm>=0.6.0  # Fast inference engine (Linux only)
 ctransformers>=0.2.27  # Local inference (Windows/CPU support)
+google-generativeai>=0.3.0  # Gemini API support
 
 
 # Agentic Framework
@@ -17,7 +18,8 @@ langchain-community>=0.3.0
 # Symbolic Execution
 crosshair-tool>=0.0.99
 z3-solver>=4.13.0
-angr>=9.2.0
+angr==9.2.112  # Pinned to avoid protobuf conflict
+
 
 # Static Analysis
 bandit>=1.7.5

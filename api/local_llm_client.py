@@ -77,12 +77,17 @@ class LlamaCppClient:
             # Detect model type from filename or path, default to 'deepseek' or 'llama'
             model_type = "deepseek2" if "deepseek" in self.model_path.lower() else "llama"
             
-            self.llm = AutoModelForCausalLM.from_pretrained(
-                os.path.abspath(self.model_path),
-                model_type=model_type,
-                gpu_layers=50 if config.enable_gpu else 0,
-                context_length=4096
-            )
+            # Prepare model parameters
+            model_params = {
+                "model_path": os.path.abspath(self.model_path),
+                "model_type": model_type,
+                "context_length": 4096
+            }
+            
+            if config.enable_gpu:
+                model_params["gpu_layers"] = 50
+                
+            self.llm = AutoModelForCausalLM.from_pretrained(**model_params)
             self._backend = 'ctransformers'
             self._initialized = True
             logger.info("Local GGUF model loaded successfully (ctransformers)")

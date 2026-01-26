@@ -22,6 +22,7 @@ from agent.llm_client import LLMClient
 
 from api.vllm_client import initialize_vllm, get_vllm_client, VLLMClient
 from api.local_llm_client import LlamaCppClient
+from api.gemini_client import GeminiClient
 from api.config import config
 from .models import AnalyzeResponse, VulnerabilityResponse, PatchResponse
 
@@ -61,7 +62,11 @@ class WorkflowOrchestrator:
         try:
             # Initialize LLM client
             try:
-                if config.use_local_llm:
+                if config.use_gemini:
+                    logger.info("Initializing Gemini Cloud Client...")
+                    self.llm_client = GeminiClient()
+                    self.llm_client.initialize()
+                elif config.use_local_llm:
                     logger.info("Initializing Local GGUF Client...")
                     self.llm_client = LlamaCppClient()
                     self.llm_client.initialize()
