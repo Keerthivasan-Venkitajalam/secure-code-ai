@@ -7,11 +7,12 @@ import ast
 import logging
 import time
 import re
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Dict
 
 from ..state import AgentState, Patch, VerificationResult, Vulnerability
 from ..llm_client import LLMClient
 from ..prompts import PATCH_PROMPT, get_secure_patterns, format_previous_attempts
+from ..security_metrics import SecurityMetrics, SecurityScore
 
 # Import PEP 8 tools (Requirement 9.5)
 try:
@@ -41,6 +42,9 @@ class PatcherAgent:
             llm_client: LLM client for patch generation (optional, uses templates if None)
         """
         self.llm_client = llm_client
+        
+        # Initialize security metrics system (Requirement 2.3)
+        self.security_metrics = SecurityMetrics()
         
         # Load few-shot examples for patch generation (Requirement 3.1)
         self.patch_examples = PATCH_PROMPT.few_shot_examples
@@ -104,10 +108,46 @@ class PatcherAgent:
                 # Validate patch (Requirement 5.4, 5.5)
                 is_valid, error = self.validate_patch(patch, code)
                 if is_valid:
-                    state["current_patch"] = patch
-                    state["patches"] = state.get("patches", []) + [patch]
-                    state["iteration_count"] = iteration + 1
-                    state["logs"].append(f"Patcher Agent: Generated patch (iteration {iteration + 1})")
+                    # Run security verification (Requirements 2.3, 2.4)
+                    security_score = self.security_metrics.evaluate_patch_security(
+                        original_code=code,
+                        patched_code=patch.code,
+                        functional_pass=True  # Assume functional if syntax valid
+                    )
+                    
+                    # Log security evaluation results
+                    state["logs"].append(
+                        f"Patcher Agent: Security check - "
+                        f"functional_pass={security_score.functional_pass}, "
+                        f"security_pass={security_score.security_pass}, "
+                        f"issues={len(security_score.security_issues)}"
+                    )
+                    
+                    # Reject patches that fail security checks (Requirement 2.3)
+                    if not security_score.security_pass:
+                        logger.warning(
+                            f"Patch failed security checks: "
+                            f"{len(security_score.security_issues)} new issues found"
+                        )
+                        state["errors"].append(
+                            f"Patcher Agent: Patch introduces new security issues - "
+                            f"{', '.join(i.issue_type for i in security_score.security_issues[:3])}"
+                        )
+                        
+                        # Log security issues for analysis (Requirement 2.3)
+                        for issue in security_score.security_issues:
+                            logger.info(
+                                f"Security issue: {issue.tool} - {issue.severity} - "
+                                f"{issue.issue_type}: {issue.message}"
+                            )
+                    else:
+                        # Patch passes both functional and security checks
+                        state["current_patch"] = patch
+                        state["patches"] = state.get("patches", []) + [patch]
+                        state["iteration_count"] = iteration + 1
+                        state["logs"].append(
+                            f"Patcher Agent: Generated secure patch (iteration {iteration + 1})"
+                        )
                 else:
                     logger.warning(f"Invalid patch: {error}")
                     state["errors"].append(f"Patcher Agent: Invalid patch - {error}")
@@ -889,3 +929,37 @@ class PatcherAgent:
             return (False, "; ".join(errors))
         
         return (True, None)
+    
+    def run_adversarial_tests(
+        self,
+        patch: Patch,
+        vuln_type: str
+    ) -> List[Dict]:
+        """
+        Run adversarial tests on a patch.
+        
+        Tests the patch against known attack patterns for the vulnerability type.
+        
+        Args:
+            patch: Patch to test
+            vuln_type: Type of vulnerability that was patched
+            
+        Returns:
+            List of test results
+            
+        Validates: Requirements 2.4
+        """
+        logger.info(f"Running adversarial tests for {vuln_type}...")
+        
+        test_results = self.security_metrics.run_adversarial_tests(
+            code=patch.code,
+            vuln_type=vuln_type
+        )
+        
+        # Log results
+        passed = sum(1 for r in test_results if r["passed"])
+        logger.info(
+            f"Adversarial tests: {passed}/{len(test_results)} passed"
+        )
+        
+        return test_results
