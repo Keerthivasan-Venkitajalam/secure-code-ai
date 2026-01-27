@@ -3,6 +3,7 @@ SecureCodeAI - Workflow Orchestrator
 Orchestrates the LangGraph workflow for vulnerability detection and patching.
 """
 
+import os
 import asyncio
 import time
 import uuid
@@ -16,8 +17,23 @@ from agent.nodes.scanner import ScannerAgent
 from agent.nodes.speculator import SpeculatorAgent
 from agent.nodes.symbot import SymBotAgent
 from agent.nodes.patcher import PatcherAgent
-from agent.nodes.binary_analyzer import BinaryAnalyzerAgent
-from agent.nodes.smart_contract import SmartContractAgent
+
+# Optional imports - may fail on Windows
+SKIP_ANGR = os.getenv("SKIP_ANGR", "false").lower() == "true"
+
+if not SKIP_ANGR:
+    try:
+        from agent.nodes.binary_analyzer import BinaryAnalyzerAgent
+    except ImportError:
+        BinaryAnalyzerAgent = None
+else:
+    BinaryAnalyzerAgent = None
+
+try:
+    from agent.nodes.smart_contract import SmartContractAgent
+except ImportError:
+    SmartContractAgent = None
+
 from agent.llm_client import LLMClient
 
 from api.vllm_client import initialize_vllm, get_vllm_client, VLLMClient

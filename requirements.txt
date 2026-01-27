@@ -47,6 +47,8 @@ datasets>=2.15.0  # For SWE-bench
 pytest>=7.4.0
 pytest-asyncio>=0.21.0
 pytest-cov>=4.1.0
+matplotlib>=3.5.0  # For plot generation
+numpy>=1.21.0  # For numerical operations
 
 # Utilities
 python-dotenv>=1.0.0

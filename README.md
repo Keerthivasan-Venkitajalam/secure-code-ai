@@ -4,6 +4,36 @@
 
 SecureCodeAI combines Large Language Models (LLMs) with symbolic execution to automatically detect and patch security vulnerabilities in source code. The system uses a multi-agent architecture powered by DeepSeek-Coder-V2-Lite-Instruct and provides both a REST API and command-line interface.
 
+## 🚀 Quick Start - Run Locally (No Cloud Required!)
+
+Get started in 10 minutes with zero cloud costs:
+
+```bash
+# 1. Get free Gemini API key from: https://makersuite.google.com/app/apikey
+
+# 2. Configure environment
+cd secure-code-ai/deployment
+cp .env.example .env
+# Edit .env and add: GEMINI_API_KEY=your_key_here
+
+# 3. Start backend (Windows)
+cd ..
+.\scripts\start_local.ps1
+
+# Or on Linux/Mac
+./scripts/start_local.sh
+
+# 4. Install VS Code extension
+cd extension
+npm install && npm run compile
+# Press F5 in VS Code to launch
+
+# 5. Test it!
+# Create test.py with vulnerable code and analyze it
+```
+
+**📖 Full Guide**: See [QUICKSTART_LOCAL.md](QUICKSTART_LOCAL.md) for detailed instructions.
+
 ## Features
 
 - 🔍 **Automated Vulnerability Detection** - Scans code using Bandit SAST and LLM analysis
@@ -87,11 +117,54 @@ For detailed information about the LLM agent architecture, prompt templates, sel
 ### Prerequisites
 
 - **Python 3.10+**
-- **16GB RAM minimum** (32GB recommended)
-- **GPU with 24GB VRAM** (for production) or CPU (for development)
-- **Docker** (optional, for containerized deployment)
+- **16GB RAM minimum** (32GB recommended for local models)
+- **8GB RAM minimum** (when using Gemini API)
+- **GPU with 24GB VRAM** (optional, for local models)
+- **Docker** (recommended for easy setup)
 
-### Installation
+## Installation Options
+
+### Option 1: Local Docker Setup (Recommended) ⭐
+
+**Best for**: Development, testing, no cloud costs
+
+```bash
+# 1. Get free Gemini API key
+# Visit: https://makersuite.google.com/app/apikey
+
+# 2. Configure
+cd secure-code-ai/deployment
+cp .env.example .env
+# Edit .env: Add GEMINI_API_KEY=your_key
+
+# 3. Start (Windows)
+cd ..
+.\scripts\start_local.ps1
+
+# Or Linux/Mac
+./scripts/start_local.sh
+
+# 4. Verify
+curl http://localhost:8000/health
+```
+
+**📖 Full Guide**: [QUICKSTART_LOCAL.md](QUICKSTART_LOCAL.md)
+
+### Option 2: Cloud Deployment (RunPod)
+
+**Best for**: Production, team sharing, 24/7 availability
+
+```bash
+# See deployment guides:
+# - deployment/RUNPOD_ACCOUNT_SETUP.md
+# - deployment/RUNPOD_DEPLOYMENT.md
+```
+
+**Cost**: $12-40/month depending on usage
+
+### Option 3: Manual Python Setup
+
+**Best for**: Development without Docker
 
 ```bash
 # Clone repository
@@ -105,33 +178,40 @@ conda activate secureai
 # Install dependencies
 pip install -r requirements.txt
 
-# Download model (optional - can be done automatically on first run)
-hf download bartowski/DeepSeek-Coder-V2-Lite-Instruct-GGUF --include "DeepSeek-Coder-V2-Lite-Instruct-Q2_K.gguf" --local-dir models/deepseek-q2
+# Set up Gemini
+export GEMINI_API_KEY=your_key_here
+export LLM_BACKEND=gemini
+
+# Start server
+python -m api.server
 ```
 
-### Running the API Server
+## VS Code Extension Setup
 
 ```bash
-# Start the API server
-python -m api.server
+cd secure-code-ai/extension
+npm install
+npm run compile
 
-# Start with Gemini (Recommended)
-set SECUREAI_USE_GEMINI=true
-set SECUREAI_GEMINI_API_KEY=your_api_key
-python -m api.server
-
-# Or with custom configuration
-export SECUREAI_HOST=0.0.0.0
-export SECUREAI_PORT=8000
-export SECUREAI_MODEL_PATH=models/deepseek-q2
-python -m api.server
+# Option A: Development mode (F5 in VS Code)
+# Option B: Install as VSIX
+npm install -g @vscode/vsce
+vsce package
+code --install-extension securecodai-0.1.0.vsix
 ```
 
-The API will be available at `http://localhost:8000`
+**Configure in VS Code Settings:**
+```json
+{
+  "securecodai.apiEndpoint": "http://localhost:8000"
+}
+```
 
-### Using the API
+**📖 Extension Guide**: [extension/LOCAL_DEVELOPMENT.md](extension/LOCAL_DEVELOPMENT.md)
 
-#### Health Check
+## Using the API
+
+### Health Check
 
 ```bash
 curl http://localhost:8000/health
@@ -141,11 +221,9 @@ Response:
 ```json
 {
   "status": "healthy",
-  "vllm_loaded": true,
-  "workflow_ready": true,
-  "uptime_seconds": 3600.5,
-  "request_queue_depth": 0
+  "timestamp": "2026-01-27T12:00:00Z"
 }
+```
 ```
 
 #### Analyze Code
