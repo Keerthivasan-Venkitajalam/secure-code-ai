@@ -89,8 +89,8 @@ def create_workflow(
     speculator: SpeculatorAgent,
     symbot: SymBotAgent,
     patcher: PatcherAgent,
-    binary_analyzer: BinaryAnalyzerAgent,
-    smart_contract_agent: SmartContractAgent,
+    binary_analyzer: Optional[BinaryAnalyzerAgent] = None,
+    smart_contract_agent: Optional[SmartContractAgent] = None,
     semantic_scanner=None,
     validator_suite=None,
 ) -> StateGraph:
@@ -170,7 +170,7 @@ def create_workflow(
     # Always add merge_results node (handles case when semantic scanner is disabled)
     workflow.add_node("merge_results", merge_results_node)
     
-    def route_start(state: AgentState) -> Literal["scanner", "binary_analyzer", "smart_contract_agent"]:
+    def route_start(state: AgentState) -> str:
         if state.get("binary_path") and binary_analyzer is not None:
             return "binary_analyzer"
         if state.get("file_path", "").endswith(".sol") and smart_contract_agent is not None:
@@ -273,8 +273,8 @@ def run_analysis(
     speculator = SpeculatorAgent()
     symbot = SymBotAgent()
     patcher = PatcherAgent()
-    binary_analyzer = BinaryAnalyzerAgent()
-    smart_contract_agent = SmartContractAgent()
+    binary_analyzer = BinaryAnalyzerAgent() if BinaryAnalyzerAgent is not None else None
+    smart_contract_agent = SmartContractAgent() if SmartContractAgent is not None else None
     
     # Create workflow with optional semantic components
     app = create_workflow(
