@@ -15,17 +15,17 @@ try {
     if ($response.StatusCode -eq 200) {
         $content = $response.Content | ConvertFrom-Json
         if ($content.status -eq "healthy") {
-            Write-Host "✅ API is running and healthy" -ForegroundColor Green
+            Write-Host " API is running and healthy" -ForegroundColor Green
         } else {
-            Write-Host "❌ API returned unexpected status: $($content.status)" -ForegroundColor Red
+            Write-Host " API returned unexpected status: $($content.status)" -ForegroundColor Red
             $allPassed = $false
         }
     } else {
-        Write-Host "❌ API returned status code: $($response.StatusCode)" -ForegroundColor Red
+        Write-Host " API returned status code: $($response.StatusCode)" -ForegroundColor Red
         $allPassed = $false
     }
 } catch {
-    Write-Host "❌ API is not running or not accessible" -ForegroundColor Red
+    Write-Host " API is not running or not accessible" -ForegroundColor Red
     Write-Host "   Error: $($_.Exception.Message)" -ForegroundColor Yellow
     Write-Host "   Please start the API with: .\scripts\start_api_local.ps1" -ForegroundColor Yellow
     $allPassed = $false
@@ -37,14 +37,14 @@ Write-Host "Test 2: Checking API documentation..." -ForegroundColor Cyan
 try {
     $response = Invoke-WebRequest -Uri "http://127.0.0.1:8000/docs" -UseBasicParsing -TimeoutSec 5
     if ($response.StatusCode -eq 200) {
-        Write-Host "✅ API documentation is accessible" -ForegroundColor Green
+        Write-Host " API documentation is accessible" -ForegroundColor Green
         Write-Host "   URL: http://127.0.0.1:8000/docs" -ForegroundColor Gray
     } else {
-        Write-Host "❌ API documentation returned status: $($response.StatusCode)" -ForegroundColor Red
+        Write-Host " API documentation returned status: $($response.StatusCode)" -ForegroundColor Red
         $allPassed = $false
     }
 } catch {
-    Write-Host "❌ API documentation is not accessible" -ForegroundColor Red
+    Write-Host " API documentation is not accessible" -ForegroundColor Red
     $allPassed = $false
 }
 Write-Host ""
@@ -55,15 +55,15 @@ try {
     $response = Invoke-WebRequest -Uri "http://127.0.0.1:8000/openapi.json" -UseBasicParsing -TimeoutSec 5
     if ($response.StatusCode -eq 200) {
         $spec = $response.Content | ConvertFrom-Json
-        Write-Host "✅ OpenAPI spec is available" -ForegroundColor Green
+        Write-Host " OpenAPI spec is available" -ForegroundColor Green
         Write-Host "   Title: $($spec.info.title)" -ForegroundColor Gray
         Write-Host "   Version: $($spec.info.version)" -ForegroundColor Gray
     } else {
-        Write-Host "❌ OpenAPI spec returned status: $($response.StatusCode)" -ForegroundColor Red
+        Write-Host " OpenAPI spec returned status: $($response.StatusCode)" -ForegroundColor Red
         $allPassed = $false
     }
 } catch {
-    Write-Host "❌ OpenAPI spec is not accessible" -ForegroundColor Red
+    Write-Host " OpenAPI spec is not accessible" -ForegroundColor Red
     $allPassed = $false
 }
 Write-Host ""
@@ -96,17 +96,17 @@ try {
     
     if ($response.StatusCode -eq 200) {
         $result = $response.Content | ConvertFrom-Json
-        Write-Host "✅ Analyze endpoint is working" -ForegroundColor Green
+        Write-Host " Analyze endpoint is working" -ForegroundColor Green
         Write-Host "   Analysis ID: $($result.analysis_id)" -ForegroundColor Gray
         Write-Host "   Vulnerabilities found: $($result.vulnerabilities.Count)" -ForegroundColor Gray
         Write-Host "   Patches generated: $($result.patches.Count)" -ForegroundColor Gray
         Write-Host "   Execution time: $($result.execution_time)s" -ForegroundColor Gray
     } else {
-        Write-Host "❌ Analyze endpoint returned status: $($response.StatusCode)" -ForegroundColor Red
+        Write-Host " Analyze endpoint returned status: $($response.StatusCode)" -ForegroundColor Red
         $allPassed = $false
     }
 } catch {
-    Write-Host "❌ Analyze endpoint test failed" -ForegroundColor Red
+    Write-Host " Analyze endpoint test failed" -ForegroundColor Red
     Write-Host "   Error: $($_.Exception.Message)" -ForegroundColor Yellow
     Write-Host "   This might be due to missing LLM backend configuration" -ForegroundColor Yellow
     $allPassed = $false
@@ -117,27 +117,27 @@ Write-Host ""
 Write-Host "Test 5: Checking VS Code extension..." -ForegroundColor Cyan
 if (Test-Path "extension/package.json") {
     $packageJson = Get-Content "extension/package.json" | ConvertFrom-Json
-    Write-Host "✅ Extension found" -ForegroundColor Green
+    Write-Host " Extension found" -ForegroundColor Green
     Write-Host "   Name: $($packageJson.displayName)" -ForegroundColor Gray
     Write-Host "   Version: $($packageJson.version)" -ForegroundColor Gray
     
     # Check if node_modules exists
     if (Test-Path "extension/node_modules") {
-        Write-Host "✅ Extension dependencies installed" -ForegroundColor Green
+        Write-Host " Extension dependencies installed" -ForegroundColor Green
     } else {
-        Write-Host "⚠️  Extension dependencies not installed" -ForegroundColor Yellow
+        Write-Host "  Extension dependencies not installed" -ForegroundColor Yellow
         Write-Host "   Run: cd extension && npm install" -ForegroundColor Yellow
     }
     
     # Check if compiled
     if (Test-Path "extension/out") {
-        Write-Host "✅ Extension compiled" -ForegroundColor Green
+        Write-Host " Extension compiled" -ForegroundColor Green
     } else {
-        Write-Host "⚠️  Extension not compiled" -ForegroundColor Yellow
+        Write-Host "  Extension not compiled" -ForegroundColor Yellow
         Write-Host "   Run: cd extension && npm run compile" -ForegroundColor Yellow
     }
 } else {
-    Write-Host "❌ Extension not found" -ForegroundColor Red
+    Write-Host " Extension not found" -ForegroundColor Red
     $allPassed = $false
 }
 Write-Host ""
@@ -149,20 +149,20 @@ Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
 if ($allPassed) {
-    Write-Host "✅ All tests passed!" -ForegroundColor Green
+    Write-Host " All tests passed!" -ForegroundColor Green
     Write-Host ""
     Write-Host "Your local setup is ready to use!" -ForegroundColor Green
     Write-Host ""
     Write-Host "Next steps:" -ForegroundColor Cyan
     Write-Host "  1. Open VS Code" -ForegroundColor White
     Write-Host "  2. Open a Python file" -ForegroundColor White
-    Write-Host "  3. Right-click → 'SecureCodeAI: Analyze Current File'" -ForegroundColor White
+    Write-Host "  3. Right-click  'SecureCodeAI: Analyze Current File'" -ForegroundColor White
     Write-Host ""
     Write-Host "Or run extension in dev mode:" -ForegroundColor Cyan
     Write-Host "  cd extension" -ForegroundColor White
     Write-Host "  Press F5 in VS Code" -ForegroundColor White
 } else {
-    Write-Host "⚠️  Some tests failed" -ForegroundColor Yellow
+    Write-Host "  Some tests failed" -ForegroundColor Yellow
     Write-Host ""
     Write-Host "Common fixes:" -ForegroundColor Cyan
     Write-Host "  1. Make sure API is running: .\scripts\start_api_local.ps1" -ForegroundColor White
@@ -170,7 +170,7 @@ if ($allPassed) {
     Write-Host "  3. Install dependencies: pip install -r requirements.txt" -ForegroundColor White
     Write-Host "  4. Check Google Cloud credentials are configured" -ForegroundColor White
     Write-Host ""
-    Write-Host "For more help, see: README.md and extension/README.md" -ForegroundColor Cyan
+    Write-Host "For more help, see: CONNECT_EXTENSION_LOCAL.md" -ForegroundColor Cyan
 }
 
 Write-Host ""

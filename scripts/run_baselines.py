@@ -10,7 +10,7 @@ import os
 import sys
 
 def run_bandit(target_dir: str, output_file: str):
-    print(f"🚀 Running Bandit on {target_dir}...")
+    print(f" Running Bandit on {target_dir}...")
     cmd = [
         "bandit",
         "-r", target_dir,
@@ -20,12 +20,12 @@ def run_bandit(target_dir: str, output_file: str):
     ]
     try:
         subprocess.run(cmd, check=False) # Bandit returns exit code 1 if issues found
-        print(f"✅ Bandit finished. Results in {output_file}")
+        print(f" Bandit finished. Results in {output_file}")
     except FileNotFoundError:
-        print("❌ Bandit not found in path.")
+        print(" Bandit not found in path.")
 
 def run_semgrep(target_dir: str, output_file: str):
-    print(f"🚀 Running Semgrep on {target_dir}...")
+    print(f" Running Semgrep on {target_dir}...")
     cmd = [
         "semgrep",
         "--config=p/security-audit",
@@ -36,9 +36,9 @@ def run_semgrep(target_dir: str, output_file: str):
     ]
     try:
         subprocess.run(cmd, check=False)
-        print(f"✅ Semgrep finished. Results in {output_file}")
+        print(f" Semgrep finished. Results in {output_file}")
     except FileNotFoundError:
-        print("❌ Semgrep not found in path.")
+        print(" Semgrep not found in path.")
 
 def parse_bandit_results(file_path: str):
     try:

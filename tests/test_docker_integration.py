@@ -6,8 +6,11 @@ Tests:
 - Container startup and health checks
 - API endpoint functionality
 - Graceful shutdown with SIGTERM
+- Semantic scanning data directories
+- Semantic scanning dependencies
+- Data persistence across container restarts
 
-Requirements: 5.1, 5.2, 5.3, 5.4
+Requirements: 5.1, 5.2, 5.3, 5.4, 7.1, 7.2, 7.3, 9.1, 9.2, 9.3, 9.4
 """
 
 import pytest
@@ -60,13 +63,13 @@ def docker_image():
             if 'stream' in log:
                 print(log['stream'].strip())
         
-        print(f"✓ Image built successfully: {image.id}")
+        print(f" Image built successfully: {image.id}")
         yield image
         
         # Cleanup: Remove image after tests
         try:
             client.images.remove(image.id, force=True)
-            print(f"✓ Cleaned up test image: {image.id}")
+            print(f" Cleaned up test image: {image.id}")
         except Exception as e:
             print(f"Warning: Failed to cleanup image: {e}")
     
@@ -93,7 +96,7 @@ def docker_container(docker_image):
         name="secureai-test"
     )
     
-    print(f"\n✓ Container started: {container.id[:12]}")
+    print(f"\n Container started: {container.id[:12]}")
     
     # Wait for container to be ready (max 60 seconds)
     max_wait = 60
@@ -110,7 +113,7 @@ def docker_container(docker_image):
             # Try health check
             response = requests.get("http://localhost:8000/health", timeout=2)
             if response.status_code == 200:
-                print(f"✓ Container ready after {time.time() - start_time:.1f}s")
+                print(f" Container ready after {time.time() - start_time:.1f}s")
                 break
         except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
             time.sleep(2)
@@ -125,7 +128,7 @@ def docker_container(docker_image):
     # Cleanup: Stop container
     try:
         container.stop(timeout=10)
-        print(f"✓ Container stopped: {container.id[:12]}")
+        print(f" Container stopped: {container.id[:12]}")
     except Exception as e:
         print(f"Warning: Failed to stop container: {e}")
 
@@ -146,7 +149,7 @@ class TestDockerIntegration:
         # Check image has correct tags
         assert any("secureai:test" in tag for tag in docker_image.tags)
         
-        print(f"✓ Image built with ID: {docker_image.id[:12]}")
+        print(f" Image built with ID: {docker_image.id[:12]}")
     
     def test_container_startup(self, docker_container):
         """
@@ -166,7 +169,7 @@ class TestDockerIntegration:
         assert data["status"] == "healthy"
         assert "uptime_seconds" in data
         
-        print(f"✓ Container healthy: {data}")
+        print(f" Container healthy: {data}")
     
     def test_health_endpoint(self, docker_container):
         """
@@ -184,7 +187,7 @@ class TestDockerIntegration:
         assert isinstance(data["uptime_seconds"], (int, float))
         assert data["uptime_seconds"] >= 0
         
-        print(f"✓ Health check passed: {data}")
+        print(f" Health check passed: {data}")
     
     def test_readiness_endpoint(self, docker_container):
         """
@@ -205,7 +208,7 @@ class TestDockerIntegration:
         assert "vllm_engine" in data["components"]
         assert "agent_workflow" in data["components"]
         
-        print(f"✓ Readiness check passed: {data}")
+        print(f" Readiness check passed: {data}")
     
     def test_analyze_endpoint_validation(self, docker_container):
         """
@@ -229,7 +232,7 @@ class TestDockerIntegration:
         )
         assert response.status_code == 422  # Validation error
         
-        print("✓ Request validation working correctly")
+        print(" Request validation working correctly")
     
     def test_analyze_endpoint_basic(self, docker_container):
         """
@@ -269,9 +272,9 @@ result = add(1, 2)
             assert "execution_time" in data
             assert isinstance(data["vulnerabilities"], list)
             assert isinstance(data["patches"], list)
-            print(f"✓ Analysis completed: {len(data['vulnerabilities'])} vulnerabilities found")
+            print(f" Analysis completed: {len(data['vulnerabilities'])} vulnerabilities found")
         else:
-            print("✓ Service unavailable (expected for CPU-only container)")
+            print(" Service unavailable (expected for CPU-only container)")
     
     def test_graceful_shutdown(self, docker_image):
         """
@@ -303,7 +306,7 @@ result = add(1, 2)
             assert container.status == "running"
             
             # Send SIGTERM signal
-            print("\n✓ Sending SIGTERM to container...")
+            print("\n Sending SIGTERM to container...")
             container.kill(signal="SIGTERM")
             
             # Wait for graceful shutdown (max 30 seconds)
@@ -321,17 +324,17 @@ result = add(1, 2)
             assert container.status == "exited"
             
             shutdown_time = time.time() - start_time
-            print(f"✓ Container shutdown gracefully in {shutdown_time:.1f}s")
+            print(f" Container shutdown gracefully in {shutdown_time:.1f}s")
             
             # Check logs for graceful shutdown messages
             logs = container.logs().decode('utf-8')
             assert "Received shutdown signal" in logs or "Shutting down" in logs
-            print("✓ Graceful shutdown messages found in logs")
+            print(" Graceful shutdown messages found in logs")
             
             # Check exit code (should be 0 for graceful shutdown)
             exit_code = container.attrs['State']['ExitCode']
             assert exit_code == 0, f"Expected exit code 0, got {exit_code}"
-            print(f"✓ Exit code: {exit_code}")
+            print(f" Exit code: {exit_code}")
         
         finally:
             # Cleanup
@@ -355,7 +358,7 @@ result = add(1, 2)
         # Check for configuration messages
         assert "Configuration" in logs or "Model Path" in logs
         
-        print("✓ Container logs contain expected messages")
+        print(" Container logs contain expected messages")
     
     def test_port_exposure(self, docker_container):
         """
@@ -375,7 +378,155 @@ result = add(1, 2)
         response = requests.get("http://localhost:8000/health", timeout=5)
         assert response.status_code == 200
         
-        print("✓ Port 8000 properly exposed and accessible")
+        print(" Port 8000 properly exposed and accessible")
+    
+    def test_semantic_scanning_data_directories(self, docker_container):
+        """
+        Test that semantic scanning data directories are created.
+        
+        Validates: Requirements 7.1, 7.2
+        """
+        # Execute command in container to check directories
+        exit_code, output = docker_container.exec_run(
+            "ls -la /app/data"
+        )
+        
+        assert exit_code == 0, f"Failed to list data directories: {output.decode('utf-8')}"
+        
+        output_str = output.decode('utf-8')
+        assert 'knowledge_base' in output_str
+        assert 'vector_store' in output_str
+        assert 'embedding_model' in output_str
+        
+        print(" Semantic scanning data directories exist")
+    
+    def test_semantic_scanning_dependencies(self, docker_container):
+        """
+        Test that semantic scanning dependencies are installed.
+        
+        Validates: Requirements 7.1
+        """
+        # Check if sentence-transformers is installed
+        exit_code, output = docker_container.exec_run(
+            "python -c 'import sentence_transformers; print(sentence_transformers.__version__)'"
+        )
+        assert exit_code == 0, f"sentence-transformers not installed: {output.decode('utf-8')}"
+        print(f" sentence-transformers installed: {output.decode('utf-8').strip()}")
+        
+        # Check if chromadb is installed
+        exit_code, output = docker_container.exec_run(
+            "python -c 'import chromadb; print(chromadb.__version__)'"
+        )
+        assert exit_code == 0, f"chromadb not installed: {output.decode('utf-8')}"
+        print(f" chromadb installed: {output.decode('utf-8').strip()}")
+        
+        # Check if rapidfuzz is installed
+        exit_code, output = docker_container.exec_run(
+            "python -c 'import rapidfuzz; print(rapidfuzz.__version__)'"
+        )
+        assert exit_code == 0, f"rapidfuzz not installed: {output.decode('utf-8')}"
+        print(f" rapidfuzz installed: {output.decode('utf-8').strip()}")
+    
+    def test_semantic_scanning_environment_variables(self, docker_container):
+        """
+        Test that semantic scanning environment variables are set.
+        
+        Validates: Requirements 9.1, 9.2, 9.3, 9.4
+        """
+        # Check environment variables
+        exit_code, output = docker_container.exec_run("env")
+        assert exit_code == 0
+        
+        env_vars = output.decode('utf-8')
+        
+        # Check required environment variables
+        assert 'ENABLE_SEMANTIC_SCANNING' in env_vars
+        assert 'KNOWLEDGE_BASE_PATH' in env_vars
+        assert 'EMBEDDING_MODEL_NAME' in env_vars
+        assert 'VECTOR_STORE_PATH' in env_vars
+        assert 'SIMILARITY_THRESHOLD' in env_vars
+        
+        print(" Semantic scanning environment variables are set")
+    
+    def test_data_persistence_across_restarts(self, docker_image):
+        """
+        Test that data persists across container restarts.
+        
+        Validates: Requirements 7.3
+        """
+        client = docker.from_env()
+        
+        # Create a volume for testing
+        volume = client.volumes.create(name="test-vector-store")
+        
+        try:
+            # Start first container and create some data
+            container1 = client.containers.run(
+                docker_image.id,
+                detach=True,
+                ports={"8000/tcp": 8002},
+                environment={
+                    "SECUREAI_ENABLE_GPU": "false",
+                    "ENABLE_SEMANTIC_SCANNING": "true"
+                },
+                volumes={
+                    volume.name: {"bind": "/app/data/vector_store", "mode": "rw"}
+                },
+                remove=False,
+                name="secureai-persistence-test-1"
+            )
+            
+            # Wait for container to be ready
+            time.sleep(10)
+            
+            # Create a test file in the volume
+            exit_code, output = container1.exec_run(
+                "sh -c 'echo test_data > /app/data/vector_store/test_file.txt'"
+            )
+            assert exit_code == 0
+            
+            # Stop first container
+            container1.stop(timeout=10)
+            container1.remove()
+            
+            # Start second container with same volume
+            container2 = client.containers.run(
+                docker_image.id,
+                detach=True,
+                ports={"8000/tcp": 8003},
+                environment={
+                    "SECUREAI_ENABLE_GPU": "false",
+                    "ENABLE_SEMANTIC_SCANNING": "true"
+                },
+                volumes={
+                    volume.name: {"bind": "/app/data/vector_store", "mode": "rw"}
+                },
+                remove=False,
+                name="secureai-persistence-test-2"
+            )
+            
+            # Wait for container to be ready
+            time.sleep(10)
+            
+            # Check if test file still exists
+            exit_code, output = container2.exec_run(
+                "cat /app/data/vector_store/test_file.txt"
+            )
+            assert exit_code == 0
+            assert "test_data" in output.decode('utf-8')
+            
+            print(" Data persists across container restarts")
+            
+            # Cleanup
+            container2.stop(timeout=10)
+            container2.remove()
+        
+        finally:
+            # Remove test volume
+            try:
+                volume.remove(force=True)
+            except Exception as e:
+                print(f"Warning: Failed to remove test volume: {e}")
 
 
 @pytest.mark.skipif(not DOCKER_AVAILABLE, reason="Docker not available")
@@ -392,7 +543,7 @@ def test_dockerfile_exists():
     assert "EXPOSE 8000" in content
     assert "CMD" in content or "ENTRYPOINT" in content
     
-    print("✓ Dockerfile exists and contains required instructions")
+    print(" Dockerfile exists and contains required instructions")
 
 
 @pytest.mark.skipif(not DOCKER_AVAILABLE, reason="Docker not available")
@@ -409,7 +560,7 @@ def test_entrypoint_script_exists():
     assert "MODEL_PATH" in content or "model" in content.lower()
     assert "SIGTERM" in content or "graceful" in content.lower()
     
-    print("✓ Entrypoint script exists and contains required logic")
+    print(" Entrypoint script exists and contains required logic")
 
 
 if __name__ == "__main__":

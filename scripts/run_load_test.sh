@@ -35,7 +35,7 @@ if ! curl -s http://localhost:8000/health > /dev/null; then
     exit 1
 fi
 
-echo "✓ API server is running"
+echo " API server is running"
 echo ""
 
 # Create results directory
@@ -78,9 +78,9 @@ echo ""
 # Check for memory leaks (basic check)
 echo "Checking for potential memory issues..."
 if grep -q "MemoryError\|OutOfMemory" "$REPORT_FILE"; then
-    echo "⚠ WARNING: Potential memory issues detected"
+    echo " WARNING: Potential memory issues detected"
 else
-    echo "✓ No obvious memory issues detected"
+    echo " No obvious memory issues detected"
 fi
 
 echo ""

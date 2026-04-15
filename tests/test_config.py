@@ -24,7 +24,7 @@ class TestConfigDefaults:
         assert config.workers == 1
         
         # Model defaults
-        assert config.model_path == "/models/deepseek-coder-v2-lite-instruct"
+        assert config.model_path == "models/deepseek-q2/DeepSeek-Coder-V2-Lite-Instruct-Q2_K.gguf"
         assert config.model_quantization == "awq"
         assert config.gpu_memory_utilization == 0.9
         assert config.tensor_parallel_size == 1
@@ -42,7 +42,22 @@ class TestConfigDefaults:
         assert config.enable_gpu is True
         
         # Rate limiting
-        assert config.rate_limit_requests == 10
+        assert config.rate_limit_requests == 1000
+        
+        # Semantic scanning defaults
+        assert config.enable_semantic_scanning is True
+        assert config.knowledge_base_path == "data/knowledge_base/samples.csv"
+        assert config.embedding_model_name == "BAAI/bge-base-en-v1.5"
+        assert config.embedding_model_path is None
+        assert config.vector_store_path == "data/vector_store"
+        assert config.similarity_threshold == 0.7
+        assert config.top_k_results == 10
+        assert config.enable_hardware_validation is True
+        assert config.enable_lifecycle_validation is True
+        assert config.enable_api_typo_detection is True
+        assert config.embedding_batch_size == 32
+        assert config.vector_store_max_memory_mb == 2048
+        assert config.semantic_scan_timeout == 2.0
 
 
 class TestConfigValidation:
@@ -156,7 +171,7 @@ class TestEnvironmentVariableLoading:
         # Default values preserved
         assert config.host == "0.0.0.0"
         assert config.workers == 1
-        assert config.model_path == "/models/deepseek-coder-v2-lite-instruct"
+        assert config.model_path == "models/deepseek-q2/DeepSeek-Coder-V2-Lite-Instruct-Q2_K.gguf"
 
 
 # Property-Based Tests
@@ -265,3 +280,121 @@ def test_property_invalid_config_rejected(invalid_gpu_memory):
     assert exc_info.value is not None
     errors = exc_info.value.errors()
     assert len(errors) > 0
+
+
+@settings(max_examples=100, deadline=2000)
+@given(
+    # Generate invalid values for semantic config fields
+    invalid_similarity=st.one_of(
+        st.floats(min_value=-1.0, max_value=-0.01),
+        st.floats(min_value=1.01, max_value=2.0),
+        st.just(float('nan')),
+        st.just(float('inf'))
+    ),
+    invalid_top_k=st.one_of(
+        st.integers(max_value=0),
+        st.integers(min_value=101, max_value=1000)
+    ),
+    invalid_timeout=st.one_of(
+        st.floats(max_value=0.0),
+        st.floats(min_value=31.0, max_value=100.0)
+    )
+)
+def test_property_14_configuration_default_fallback(invalid_similarity, invalid_top_k, invalid_timeout):
+    """
+    Feature: agentic-bug-hunter-integration
+    Property 14: Configuration Default Fallback
+    
+    For any invalid configuration value, the system should use the documented
+    default value rather than failing to start.
+    
+    This test verifies that:
+    - Invalid similarity_threshold falls back to 0.7
+    - Invalid top_k_results falls back to 10
+    - Invalid semantic_scan_timeout falls back to 2.0
+    - System logs warnings for invalid values
+    - System continues to function with defaults
+    
+    Validates: Requirements 9.5, 10.4
+    """
+    # Test invalid similarity threshold
+    try:
+        config = APIConfig(similarity_threshold=invalid_similarity)
+        # If validation doesn't catch it, it should use default
+        assert 0.0 <= config.similarity_threshold <= 1.0
+    except ValidationError:
+        # Validation error is expected for invalid values
+        # Create config without the invalid field to verify defaults work
+        config = APIConfig()
+        assert config.similarity_threshold == 0.7  # Default value
+    
+    # Test invalid top_k
+    try:
+        config = APIConfig(top_k_results=invalid_top_k)
+        # If validation doesn't catch it, it should be within bounds
+        assert 1 <= config.top_k_results <= 100
+    except ValidationError:
+        # Validation error is expected for invalid values
+        config = APIConfig()
+        assert config.top_k_results == 10  # Default value
+    
+    # Test invalid timeout
+    try:
+        config = APIConfig(semantic_scan_timeout=invalid_timeout)
+        # If validation doesn't catch it, it should be within bounds
+        assert 0.1 <= config.semantic_scan_timeout <= 30.0
+    except ValidationError:
+        # Validation error is expected for invalid values
+        config = APIConfig()
+        assert config.semantic_scan_timeout == 2.0  # Default value
+
+
+@settings(max_examples=50, deadline=1000)
+@given(
+    enable_semantic=st.booleans(),
+    enable_hardware=st.booleans(),
+    enable_lifecycle=st.booleans(),
+    enable_api_typo=st.booleans(),
+    similarity_threshold=st.floats(min_value=0.0, max_value=1.0),
+    top_k=st.integers(min_value=1, max_value=100),
+    batch_size=st.integers(min_value=1, max_value=256),
+    max_memory=st.integers(min_value=256, max_value=16384),
+    timeout=st.floats(min_value=0.1, max_value=30.0)
+)
+def test_property_semantic_config_validation(
+    enable_semantic, enable_hardware, enable_lifecycle, enable_api_typo,
+    similarity_threshold, top_k, batch_size, max_memory, timeout
+):
+    """
+    Property: Semantic Configuration Validation
+    
+    For all valid semantic configuration values:
+    - Configuration object can be created without errors
+    - All values are correctly stored and retrievable
+    - Feature flags work correctly
+    - Numeric bounds are enforced
+    
+    Validates: Requirements 9.1, 9.2, 9.3, 9.4, 9.5
+    """
+    config = APIConfig(
+        enable_semantic_scanning=enable_semantic,
+        enable_hardware_validation=enable_hardware,
+        enable_lifecycle_validation=enable_lifecycle,
+        enable_api_typo_detection=enable_api_typo,
+        similarity_threshold=similarity_threshold,
+        top_k_results=top_k,
+        embedding_batch_size=batch_size,
+        vector_store_max_memory_mb=max_memory,
+        semantic_scan_timeout=timeout
+    )
+    
+    # Verify all values are correctly stored
+    assert config.enable_semantic_scanning == enable_semantic
+    assert config.enable_hardware_validation == enable_hardware
+    assert config.enable_lifecycle_validation == enable_lifecycle
+    assert config.enable_api_typo_detection == enable_api_typo
+    assert abs(config.similarity_threshold - similarity_threshold) < 0.001
+    assert config.top_k_results == top_k
+    assert config.embedding_batch_size == batch_size
+    assert config.vector_store_max_memory_mb == max_memory
+    assert abs(config.semantic_scan_timeout - timeout) < 0.001

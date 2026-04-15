@@ -207,7 +207,7 @@ class TestRealWorldVulnerabilities:
                 
                 if detected:
                     results["detected"] += 1
-                    print(f"✓ Detected {len(vulnerabilities)} vulnerability(ies)")
+                    print(f" Detected {len(vulnerabilities)} vulnerability(ies)")
                     
                     # Check if detected type matches expected
                     matching_vulns = [
@@ -217,22 +217,22 @@ class TestRealWorldVulnerabilities:
                     
                     if not matching_vulns:
                         results["false_positives"] += 1
-                        print(f"⚠ False positive: Expected {sample.expected_vuln_type}, "
+                        print(f" False positive: Expected {sample.expected_vuln_type}, "
                               f"got {vulnerabilities[0].vuln_type}")
                 else:
-                    print(f"✗ Not detected (Scanner may need enhancement)")
+                    print(f" Not detected (Scanner may need enhancement)")
                 
                 # Check patch generation
                 patches = final_state.get("patches", [])
                 if len(patches) > 0:
                     results["patches_generated"] += 1
-                    print(f"✓ Generated {len(patches)} patch(es)")
+                    print(f" Generated {len(patches)} patch(es)")
                     
                     # Check verification
                     verified_patches = [p for p in patches if p.verified]
                     if len(verified_patches) > 0:
                         results["patches_verified"] += 1
-                        print(f"✓ {len(verified_patches)} patch(es) verified")
+                        print(f" {len(verified_patches)} patch(es) verified")
                 
                 # Store detailed result
                 detailed_results.append({
@@ -245,7 +245,7 @@ class TestRealWorldVulnerabilities:
                 })
                 
             except Exception as e:
-                print(f"✗ Error: {e}")
+                print(f" Error: {e}")
                 detailed_results.append({
                     "name": sample.name,
                     "cve": sample.cve_id,
@@ -278,7 +278,7 @@ class TestRealWorldVulnerabilities:
         print(f"{'Name':<40} {'Detected':<10} {'Patches':<10} {'Verified':<10}")
         print("-" * 70)
         for result in detailed_results:
-            detected_str = "✓" if result["detected"] else "✗"
+            detected_str = "" if result["detected"] else ""
             print(f"{result['name']:<40} {detected_str:<10} {result['patches']:<10} {result['verified']:<10}")
         
         # Assertions - these are lenient since Scanner may not detect all patterns

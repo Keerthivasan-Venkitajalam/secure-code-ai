@@ -19,7 +19,7 @@ class QwenInference:
     def __init__(self, token: str = "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", model_name: str = "Qwen/Qwen2.5-Coder-1.5B-Instruct"):
         self.model_name = model_name
         self.client = InferenceClient(token=token)
-        print(f"🔧 Using Hugging Face Inference: {self.model_name}")
+        print(f" Using Hugging Face Inference: {self.model_name}")
 
     def analyze_vulnerability(self, code: str) -> str:
         prompt = f"""You are a Security Researcher. Analyze the following code for vulnerabilities.
@@ -62,7 +62,7 @@ def main():
     dataset_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "toy_seccode", "secure_code_data", "PySecDB-main")
     
     files = []
-    print(f"🔍 Scanning {dataset_dir} for vulnerabilities...")
+    print(f" Scanning {dataset_dir} for vulnerabilities...")
     
     if os.path.exists(dataset_dir):
         for root, _, filenames in os.walk(dataset_dir):
@@ -73,7 +73,7 @@ def main():
                 if filename.endswith(".py") and "test" not in filename and "setup" not in filename:
                     files.append(os.path.join(root, filename))
     else:
-        print(f"⚠️  Dataset directory not found: {dataset_dir}")
+        print(f"  Dataset directory not found: {dataset_dir}")
         # Fallback to local toy files
         pattern = os.path.join(args.dir, "verify_PySecDB-*.py")
         files = glob.glob(pattern)
@@ -106,12 +106,12 @@ def main():
             "model": "Qwen/Qwen2.5-Coder-1.5B-Instruct"
         })
         
-    print(f"💾 Saving results to {args.output}")
+    print(f" Saving results to {args.output}")
     with open(args.output, "w") as f:
         for res in results:
             f.write(json.dumps(res) + "\n")
             
-    print("✅ Done!")
+    print(" Done!")
 
 if __name__ == "__main__":
     main()

@@ -84,6 +84,15 @@ def main():
         "secure-code-ai/tests/test_output_validation.py "
         "secure-code-ai/tests/test_scanner_performance.py "
         "secure-code-ai/tests/test_patcher_performance.py "
+        "secure-code-ai/tests/test_data_migration.py "
+        "secure-code-ai/tests/test_knowledge_base.py "
+        "secure-code-ai/tests/test_embedding_model.py "
+        "secure-code-ai/tests/test_vector_store.py "
+        "secure-code-ai/tests/test_semantic_scanner.py "
+        "secure-code-ai/tests/test_hardware_validator.py "
+        "secure-code-ai/tests/test_lifecycle_validator.py "
+        "secure-code-ai/tests/test_api_typo_detector.py "
+        "secure-code-ai/tests/test_workflow_nodes.py "
         "-v "
         "--tb=short"
     )
@@ -105,6 +114,8 @@ def main():
         "secure-code-ai/tests/test_e2e_workflow.py "
         "secure-code-ai/tests/test_self_correction_e2e.py "
         "secure-code-ai/tests/test_neuro_slicing_effectiveness.py "
+        "secure-code-ai/tests/test_workflow_integration.py "
+        "secure-code-ai/tests/test_e2e_semantic_integration.py "
         "-v "
         "--tb=short"
     )
@@ -115,7 +126,25 @@ def main():
         'passed': integration_result.returncode == 0
     }
     
-    # 4. Generate coverage report
+    # 4. Run performance tests
+    print("\n" + "="*80)
+    print("RUNNING PERFORMANCE TESTS")
+    print("="*80)
+    
+    performance_test_cmd = (
+        "python -m pytest "
+        "secure-code-ai/tests/test_semantic_performance.py "
+        "-v "
+        "--tb=short"
+    )
+    
+    performance_result = run_command(performance_test_cmd, "Performance Tests")
+    results['performance_tests'] = {
+        'returncode': performance_result.returncode,
+        'passed': performance_result.returncode == 0
+    }
+    
+    # 5. Generate coverage report
     print("\n" + "="*80)
     print("GENERATING COVERAGE REPORT")
     print("="*80)
@@ -157,7 +186,7 @@ def main():
     print("="*80)
     
     for test_type, result in results.items():
-        status = "✓ PASSED" if result['passed'] else "✗ FAILED"
+        status = " PASSED" if result['passed'] else " FAILED"
         print(f"{test_type.upper()}: {status}")
         if 'percentage' in result:
             print(f"  Coverage: {result['percentage']:.2f}%")
@@ -172,13 +201,13 @@ def main():
     if 'percentage' in results.get('coverage', {}):
         coverage_ok = results['coverage']['percentage'] >= 80.0
         if not coverage_ok:
-            print(f"\n⚠ WARNING: Coverage ({results['coverage']['percentage']:.2f}%) is below 80% threshold")
+            print(f"\n WARNING: Coverage ({results['coverage']['percentage']:.2f}%) is below 80% threshold")
     
     if all_passed and coverage_ok:
-        print("\n✓ All tests passed and coverage threshold met!")
+        print("\n All tests passed and coverage threshold met!")
         return 0
     else:
-        print("\n✗ Some tests failed or coverage threshold not met")
+        print("\n Some tests failed or coverage threshold not met")
         return 1
 
 

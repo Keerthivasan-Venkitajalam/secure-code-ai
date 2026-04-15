@@ -1,6 +1,6 @@
 """
 End-to-End Integration Tests for Full Workflow
-Tests the complete workflow: Scanner → Speculator → SymBot → Patcher
+Tests the complete workflow: Scanner  Speculator  SymBot  Patcher
 
 This test suite validates the full workflow with real vulnerable code examples
 from the examples/ directory, testing SQL injection, command injection, and
@@ -33,7 +33,7 @@ class TestEndToEndWorkflow:
         """
         Test full workflow with SQL injection vulnerability.
         
-        Workflow: vulnerable_sql.py → Scanner → Speculator → SymBot → Patcher
+        Workflow: vulnerable_sql.py  Scanner  Speculator  SymBot  Patcher
         Expected: Detect SQL injection, generate contract, verify, generate patch
         """
         # Load vulnerable SQL code
@@ -110,7 +110,7 @@ class TestEndToEndWorkflow:
         """
         Test full workflow with command injection vulnerability.
         
-        Workflow: vulnerable_command_injection.py → Scanner → Speculator → SymBot → Patcher
+        Workflow: vulnerable_command_injection.py  Scanner  Speculator  SymBot  Patcher
         Expected: Detect command injection, generate contract, verify, generate patch
         """
         # Load vulnerable command injection code
@@ -156,7 +156,7 @@ class TestEndToEndWorkflow:
         """
         Test full workflow with path traversal vulnerability.
         
-        Workflow: vulnerable_path_traversal.py → Scanner → Speculator → SymBot → Patcher
+        Workflow: vulnerable_path_traversal.py  Scanner  Speculator  SymBot  Patcher
         Expected: Detect path traversal, generate contract, verify, generate patch
         """
         # Load vulnerable path traversal code
@@ -291,8 +291,8 @@ def add_numbers(a: int, b: int) -> int:
             "iteration_count should be within max_iterations"
         
         print(f"\n=== State Consistency Check ===")
-        print(f"All required fields present: ✓")
-        print(f"All field types correct: ✓")
+        print(f"All required fields present: ")
+        print(f"All field types correct: ")
         print(f"Iteration count: {final_state['iteration_count']}/{final_state['max_iterations']}")
     
     def test_workflow_error_handling(self):
@@ -316,7 +316,7 @@ def broken_function(
             # May have errors or may handle gracefully
             
             print(f"\n=== Error Handling Test ===")
-            print(f"Workflow handled invalid code gracefully: ✓")
+            print(f"Workflow handled invalid code gracefully: ")
             if final_state["errors"]:
                 print(f"Errors captured: {len(final_state['errors'])}")
         
@@ -384,7 +384,7 @@ def broken_function(
         
         print(f"\n=== Max Iterations Test ===")
         print(f"Iterations used: {iteration_count}/{max_iterations}")
-        print(f"Max iterations respected: ✓")
+        print(f"Max iterations respected: ")
 
 
 class TestWorkflowPerformance:
@@ -411,7 +411,7 @@ class TestWorkflowPerformance:
         print(f"\n=== Small File Performance ===")
         print(f"File size: ~30 lines")
         print(f"Execution time: {execution_time:.2f}s")
-        print(f"Performance target met: ✓")
+        print(f"Performance target met: ")
     
     def test_workflow_performance_medium_file(self):
         """
@@ -434,7 +434,7 @@ class TestWorkflowPerformance:
         print(f"\n=== Medium File Performance ===")
         print(f"File size: ~50 lines")
         print(f"Execution time: {execution_time:.2f}s")
-        print(f"Performance target met: ✓")
+        print(f"Performance target met: ")
 
 
 if __name__ == "__main__":

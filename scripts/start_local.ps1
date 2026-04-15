@@ -11,9 +11,9 @@ Write-Host ""
 # Check if Docker is installed
 try {
     $dockerVersion = docker --version
-    Write-Host "✅ Docker is installed: $dockerVersion" -ForegroundColor Green
+    Write-Host " Docker is installed: $dockerVersion" -ForegroundColor Green
 } catch {
-    Write-Host "❌ Docker is not installed" -ForegroundColor Red
+    Write-Host " Docker is not installed" -ForegroundColor Red
     Write-Host "Please install Docker Desktop from: https://www.docker.com/products/docker-desktop"
     exit 1
 }
@@ -21,9 +21,9 @@ try {
 # Check if Docker is running
 try {
     docker info | Out-Null
-    Write-Host "✅ Docker is running" -ForegroundColor Green
+    Write-Host " Docker is running" -ForegroundColor Green
 } catch {
-    Write-Host "❌ Docker is not running" -ForegroundColor Red
+    Write-Host " Docker is not running" -ForegroundColor Red
     Write-Host "Please start Docker Desktop and try again"
     exit 1
 }
@@ -39,12 +39,12 @@ Set-Location $DeploymentDir
 
 # Check if .env file exists
 if (-not (Test-Path ".env")) {
-    Write-Host "⚠️  .env file not found" -ForegroundColor Yellow
+    Write-Host "  .env file not found" -ForegroundColor Yellow
     Write-Host "Creating .env from .env.example..."
     Copy-Item ".env.example" ".env"
-    Write-Host "✅ Created .env file" -ForegroundColor Green
+    Write-Host " Created .env file" -ForegroundColor Green
     Write-Host ""
-    Write-Host "⚠️  Please edit deployment/.env and configure:" -ForegroundColor Yellow
+    Write-Host "  Please edit deployment/.env and configure:" -ForegroundColor Yellow
     Write-Host "   1. Choose LLM backend (gemini or local)"
     Write-Host "   2. Add GEMINI_API_KEY if using Gemini"
     Write-Host ""
@@ -52,12 +52,12 @@ if (-not (Test-Path ".env")) {
     exit 0
 }
 
-Write-Host "✅ .env file found" -ForegroundColor Green
+Write-Host " .env file found" -ForegroundColor Green
 Write-Host ""
 
 # Check if docker-compose.yml exists
 if (-not (Test-Path "docker-compose.yml")) {
-    Write-Host "❌ docker-compose.yml not found" -ForegroundColor Red
+    Write-Host " docker-compose.yml not found" -ForegroundColor Red
     exit 1
 }
 
@@ -89,7 +89,7 @@ while ($RetryCount -lt $MaxRetries) {
     try {
         $response = Invoke-WebRequest -Uri "http://localhost:8000/health" -UseBasicParsing -TimeoutSec 2
         if ($response.StatusCode -eq 200) {
-            Write-Host "✅ Service is healthy!" -ForegroundColor Green
+            Write-Host " Service is healthy!" -ForegroundColor Green
             $ServiceHealthy = $true
             break
         }
@@ -103,7 +103,7 @@ while ($RetryCount -lt $MaxRetries) {
 }
 
 if (-not $ServiceHealthy) {
-    Write-Host "❌ Service failed to start" -ForegroundColor Red
+    Write-Host " Service failed to start" -ForegroundColor Red
     Write-Host ""
     Write-Host "Check logs with: docker-compose logs"
     exit 1
@@ -111,7 +111,7 @@ if (-not $ServiceHealthy) {
 
 Write-Host ""
 Write-Host "==========================================" -ForegroundColor Cyan
-Write-Host "✅ SecureCodeAI is running!" -ForegroundColor Green
+Write-Host " SecureCodeAI is running!" -ForegroundColor Green
 Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "API Endpoints:"

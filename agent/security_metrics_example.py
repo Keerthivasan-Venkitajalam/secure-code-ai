@@ -158,7 +158,7 @@ def run_command(filename):
     
     print(f"\nTest Results ({len(results)} tests):")
     for result in results:
-        status = "✓ PASS" if result["passed"] else "✗ FAIL"
+        status = " PASS" if result["passed"] else " FAIL"
         print(f"  {status} - {result['name']}")
         print(f"         Input: {result['input']}")
         print(f"         Expected: {result['expected']}")
@@ -206,7 +206,7 @@ def process_data(data):
     print(f"  New Issues: {len(score.security_issues)}")
     
     if not score.security_pass:
-        print("\n  ⚠️  PATCH REJECTED - Introduces new security issues:")
+        print("\n    PATCH REJECTED - Introduces new security issues:")
         for issue in score.security_issues:
             print(f"    - [{issue.severity}] {issue.tool}: {issue.issue_type}")
             print(f"      {issue.message}")

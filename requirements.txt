@@ -1,13 +1,18 @@
 # SecureCodeAI Dependencies
 
 # Core LLM & Inference
-transformers>=4.45.0
+transformers>=4.36.0  # Updated for semantic scanning compatibility
 torch>=2.1.0
 accelerate>=0.25.0
 bitsandbytes>=0.41.0  # For 4-bit quantization
 # vllm>=0.6.0  # Fast inference engine (Linux only)
 ctransformers>=0.2.27  # Local inference (Windows/CPU support)
 google-generativeai>=0.3.0  # Gemini API support
+
+# Semantic Scanning & RAG
+sentence-transformers==2.2.2  # For code embeddings
+chromadb==0.4.22  # Vector store for semantic search
+rapidfuzz==3.5.2  # Fuzzy matching for API typo detection
 
 
 # Agentic Framework
@@ -72,22 +77,3 @@ mypy>=1.7.0
 ruff>=0.1.8
 pycodestyle>=2.11.0  # PEP 8 checking
 autopep8>=2.0.4  # PEP 8 auto-fixing
-
-# Minimal dependencies for Role 5 (Security & Binary Analysis)
-# This avoids the complex conflicts between fastapi/runpod/semgrep
-
-# Core Agent Framework
-langgraph>=0.2.0
-langchain>=0.3.0
-langchain-community>=0.3.0
-pydantic>=2.5.0
-
-# Binary Analysis
-angr>=9.2.0
-crosshair-tool>=0.0.99
-
-# Exploit Generation Support
-pwntools>=4.11.0
-
-# Development/Testing
-pytest>=7.4.0

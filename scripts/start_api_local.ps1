@@ -8,28 +8,28 @@ Write-Host ""
 
 # Check if we're in the right directory
 if (-not (Test-Path "api/server.py")) {
-    Write-Host "❌ Error: Must run from secure-code-ai directory" -ForegroundColor Red
+    Write-Host " Error: Must run from secure-code-ai directory" -ForegroundColor Red
     Write-Host "   Current directory: $(Get-Location)" -ForegroundColor Yellow
     Write-Host "   Please run: cd secure-code-ai" -ForegroundColor Yellow
     exit 1
 }
 
-Write-Host "✅ In correct directory" -ForegroundColor Green
+Write-Host " In correct directory" -ForegroundColor Green
 
 # Check Python
 try {
     $pythonVersion = python --version 2>&1
-    Write-Host "✅ Python installed: $pythonVersion" -ForegroundColor Green
+    Write-Host " Python installed: $pythonVersion" -ForegroundColor Green
 } catch {
-    Write-Host "❌ Python not found. Please install Python 3.10+" -ForegroundColor Red
+    Write-Host " Python not found. Please install Python 3.10+" -ForegroundColor Red
     exit 1
 }
 
 # Check if virtual environment exists
 if (-not (Test-Path "venv")) {
-    Write-Host "⚠️  Virtual environment not found. Creating..." -ForegroundColor Yellow
+    Write-Host "  Virtual environment not found. Creating..." -ForegroundColor Yellow
     python -m venv venv
-    Write-Host "✅ Virtual environment created" -ForegroundColor Green
+    Write-Host " Virtual environment created" -ForegroundColor Green
 }
 
 # Activate virtual environment
@@ -40,50 +40,33 @@ Write-Host "Activating virtual environment..." -ForegroundColor Cyan
 Write-Host "Checking dependencies..." -ForegroundColor Cyan
 $uvicornInstalled = pip list 2>&1 | Select-String "uvicorn"
 if (-not $uvicornInstalled) {
-    Write-Host "⚠️  Dependencies not installed. Installing..." -ForegroundColor Yellow
+    Write-Host "  Dependencies not installed. Installing..." -ForegroundColor Yellow
     pip install -r requirements.txt
-    Write-Host "✅ Dependencies installed" -ForegroundColor Green
+    Write-Host " Dependencies installed" -ForegroundColor Green
 } else {
-    Write-Host "✅ Dependencies already installed" -ForegroundColor Green
+    Write-Host " Dependencies already installed" -ForegroundColor Green
 }
 
 # Check .env file
 if (-not (Test-Path "deployment/.env")) {
-    Write-Host "⚠️  .env file not found. Creating from template..." -ForegroundColor Yellow
+    Write-Host "  .env file not found. Creating from template..." -ForegroundColor Yellow
     Copy-Item "deployment/.env.example" "deployment/.env"
-    Write-Host "✅ .env file created. Please edit deployment/.env with your settings" -ForegroundColor Green
+    Write-Host " .env file created. Please edit deployment/.env with your settings" -ForegroundColor Green
     Write-Host ""
     Write-Host "Important: Set these in deployment/.env:" -ForegroundColor Yellow
     Write-Host "  - LLM_BACKEND=gemini" -ForegroundColor Yellow
-    Write-Host "  - GOOGLE_APPLICATION_CREDENTIALS=deployment/secrets/gcp-service-account.json" -ForegroundColor Yellow
+    Write-Host "  - GOOGLE_APPLICATION_CREDENTIALS=deployment/secrets/inquinion-code-801c22313fa5.json" -ForegroundColor Yellow
     Write-Host ""
     Read-Host "Press Enter after editing .env file"
 }
 
 # Check Google Cloud credentials
-$credsPath = "deployment/secrets/gcp-service-account.json"
-if (Test-Path "deployment/.env") {
-    $credentialsLine = Get-Content "deployment/.env" |
-        Where-Object { $_ -match '^\s*GOOGLE_APPLICATION_CREDENTIALS\s*=' } |
-        Select-Object -First 1
-
-    if ($credentialsLine) {
-        $configuredPath = ($credentialsLine -split '=', 2)[1].Trim()
-        if ($configuredPath) {
-            $credsPath = $configuredPath
-        }
-    }
-}
-
-if ($credsPath.StartsWith("/app/secrets/")) {
-    $credsPath = Join-Path "deployment/secrets" (Split-Path $credsPath -Leaf)
-}
-
+$credsPath = "deployment/secrets/inquinion-code-801c22313fa5.json"
 if (Test-Path $credsPath) {
-    Write-Host "✅ Google Cloud credentials found" -ForegroundColor Green
+    Write-Host " Google Cloud credentials found" -ForegroundColor Green
     $env:GOOGLE_APPLICATION_CREDENTIALS = $credsPath
 } else {
-    Write-Host "⚠️  Google Cloud credentials not found at: $credsPath" -ForegroundColor Yellow
+    Write-Host "  Google Cloud credentials not found at: $credsPath" -ForegroundColor Yellow
     Write-Host "   The API will still start but Gemini backend won't work" -ForegroundColor Yellow
 }
 

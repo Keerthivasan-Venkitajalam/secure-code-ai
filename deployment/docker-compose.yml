@@ -16,7 +16,21 @@ services:
       # Override specific settings if needed
       - SECUREAI_HOST=0.0.0.0
       - SECUREAI_PORT=8000
-      - GOOGLE_APPLICATION_CREDENTIALS=${GOOGLE_APPLICATION_CREDENTIALS:-/app/secrets/gcp-service-account.json}
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/secrets/inquinion-code-801c22313fa5.json
+      
+      # Semantic scanning configuration
+      - ENABLE_SEMANTIC_SCANNING=${ENABLE_SEMANTIC_SCANNING:-true}
+      - KNOWLEDGE_BASE_PATH=${KNOWLEDGE_BASE_PATH:-/app/data/knowledge_base/samples.csv}
+      - EMBEDDING_MODEL_NAME=${EMBEDDING_MODEL_NAME:-BAAI/bge-base-en-v1.5}
+      - EMBEDDING_MODEL_PATH=${EMBEDDING_MODEL_PATH:-/app/data/embedding_model}
+      - VECTOR_STORE_PATH=${VECTOR_STORE_PATH:-/app/data/vector_store}
+      - SIMILARITY_THRESHOLD=${SIMILARITY_THRESHOLD:-0.7}
+      - TOP_K_RESULTS=${TOP_K_RESULTS:-10}
+      - ENABLE_HARDWARE_VALIDATION=${ENABLE_HARDWARE_VALIDATION:-true}
+      - ENABLE_LIFECYCLE_VALIDATION=${ENABLE_LIFECYCLE_VALIDATION:-true}
+      - ENABLE_API_TYPO_DETECTION=${ENABLE_API_TYPO_DETECTION:-true}
+      - EMBEDDING_BATCH_SIZE=${EMBEDDING_BATCH_SIZE:-32}
+      - VECTOR_STORE_MAX_MEMORY_MB=${VECTOR_STORE_MAX_MEMORY_MB:-2048}
     volumes:
       # Mount local code directory for development (hot reload)
       - ../api:/app/api:ro
@@ -28,6 +42,11 @@ services:
       
       # Mount models directory as persistent volume
       - models-data:/models
+      
+      # Mount data directories for semantic scanning (persistent volumes)
+      - knowledge-base-data:/app/data/knowledge_base
+      - vector-store-data:/app/data/vector_store
+      - embedding-model-data:/app/data/embedding_model
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -46,4 +65,10 @@ services:
 
 volumes:
   models-data:
+    driver: local
+  knowledge-base-data:
+    driver: local
+  vector-store-data:
+    driver: local
+  embedding-model-data:
     driver: local

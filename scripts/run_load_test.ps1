@@ -32,7 +32,7 @@ try {
 Write-Host "Checking if API server is running..."
 try {
     $response = Invoke-WebRequest -Uri "http://localhost:8000/health" -UseBasicParsing -TimeoutSec 5
-    Write-Host "✓ API server is running" -ForegroundColor Green
+    Write-Host " API server is running" -ForegroundColor Green
 } catch {
     Write-Host "Error: API server is not running on http://localhost:8000" -ForegroundColor Red
     Write-Host "Start the server with: python -m api.server" -ForegroundColor Yellow
@@ -87,9 +87,9 @@ Write-Host ""
 Write-Host "Checking for potential memory issues..."
 $content = Get-Content $ReportFile -Raw
 if ($content -match "MemoryError|OutOfMemory") {
-    Write-Host "⚠ WARNING: Potential memory issues detected" -ForegroundColor Yellow
+    Write-Host " WARNING: Potential memory issues detected" -ForegroundColor Yellow
 } else {
-    Write-Host "✓ No obvious memory issues detected" -ForegroundColor Green
+    Write-Host " No obvious memory issues detected" -ForegroundColor Green
 }
 
 Write-Host ""

@@ -144,7 +144,7 @@ Generate a detailed vulnerability hypothesis that explains:
 
 **Security Property:** [e.g., Input validation, Output encoding]
 **Attack Vector:** [Specific exploitation technique]
-**Data Flow:** [Source → Sink path]
+**Data Flow:** [Source  Sink path]
 **Impact:** [Confidentiality/Integrity/Availability impact]""",
     
     constraints=[
@@ -159,21 +159,21 @@ Generate a detailed vulnerability hypothesis that explains:
 
 **Security Property:** Input sanitization - User input is directly concatenated into SQL query without parameterization
 **Attack Vector:** Attacker can inject SQL metacharacters (', --, ;) to manipulate query logic
-**Data Flow:** user_input parameter → string concatenation → execute() call
+**Data Flow:** user_input parameter  string concatenation  execute() call
 **Impact:** Unauthorized data access, data modification, or database compromise""",
         
         "Command Injection": """**Example for Command Injection:**
 
 **Security Property:** Command sanitization - User input is passed to shell without validation
 **Attack Vector:** Attacker can inject shell metacharacters (|, ;, &, `) to execute arbitrary commands
-**Data Flow:** filename parameter → f-string formatting → subprocess.call() with shell=True
+**Data Flow:** filename parameter  f-string formatting  subprocess.call() with shell=True
 **Impact:** Remote code execution, system compromise, data exfiltration""",
         
         "Path Traversal": """**Example for Path Traversal:**
 
 **Security Property:** Path validation - User input is used in file path without canonicalization
 **Attack Vector:** Attacker can use directory traversal sequences (.., /) to access files outside intended directory
-**Data Flow:** user_path parameter → os.path.join() → open() call
+**Data Flow:** user_path parameter  os.path.join()  open() call
 **Impact:** Unauthorized file access, information disclosure, potential code execution"""
     },
     

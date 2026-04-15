@@ -101,9 +101,9 @@ else
 fi
 
 if [ $? -eq 0 ]; then
-    echo -e "${GREEN}✓ Build successful${NC}"
+    echo -e "${GREEN} Build successful${NC}"
 else
-    echo -e "${RED}✗ Build failed${NC}"
+    echo -e "${RED} Build failed${NC}"
     exit 1
 fi
 
@@ -118,9 +118,9 @@ if [ "$PUSH_IMAGE" = "true" ]; then
     docker push "$FULL_IMAGE_NAME"
     
     if [ $? -eq 0 ]; then
-        echo -e "${GREEN}✓ Push successful${NC}"
+        echo -e "${GREEN} Push successful${NC}"
     else
-        echo -e "${RED}✗ Push failed${NC}"
+        echo -e "${RED} Push failed${NC}"
         exit 1
     fi
 fi

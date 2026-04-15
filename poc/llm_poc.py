@@ -16,8 +16,8 @@ class DeepSeekInference:
     def __init__(self, model_name: str = "deepseek-coder-v2-lite-instruct", **_: object):
         self.model_name = model_name
         self.api_url = os.environ.get("OLLAMA_API", "http://localhost:11434/api/generate")
-        print(f"🔧 Using Ollama model: {self.model_name}")
-        print(f"🔧 Endpoint: {self.api_url}")
+        print(f" Using Ollama model: {self.model_name}")
+        print(f" Endpoint: {self.api_url}")
 
     def generate_vulnerability_hypothesis(self, code: str, max_tokens: int = 512) -> str:
         prompt = f"""You are a Formal Methods Engineer and Security Researcher. Analyze the following code for security vulnerabilities.
@@ -68,7 +68,7 @@ def main():
     # Get code from file or inline argument
     if args.file:
         if not os.path.exists(args.file):
-            print(f"❌ Error: File not found: {args.file}")
+            print(f" Error: File not found: {args.file}")
             return
         with open(args.file, 'r') as f:
             code = f.read()
@@ -91,7 +91,7 @@ def main():
     
     return result is not None
 '''
-        print("📝 Using default example (SQL injection vulnerability)")
+        print(" Using default example (SQL injection vulnerability)")
     
     print("\n" + "="*70)
     print("CODE TO ANALYZE:")
@@ -100,12 +100,12 @@ def main():
     print("="*70 + "\n")
     
     # Initialize model client (Ollama)
-    print("🚨 Using local Ollama model (no transformers load)...")
+    print(" Using local Ollama model (no transformers load)...")
     llm = DeepSeekInference()
-    print("✅ Client ready, sending request...\n")
+    print(" Client ready, sending request...\n")
     
     # Generate vulnerability analysis
-    print("🔍 Analyzing code for vulnerabilities...\n")
+    print(" Analyzing code for vulnerabilities...\n")
     analysis = llm.generate_vulnerability_hypothesis(code, max_tokens=args.max_tokens)
     
     print("="*70)

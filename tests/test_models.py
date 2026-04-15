@@ -13,7 +13,11 @@ from api.models import (
     PatchResponse,
     HealthResponse,
     ReadinessResponse,
-    ErrorResponse
+    ErrorResponse,
+    SemanticVulnerabilityResponse,
+    HardwareViolationResponse,
+    LifecycleViolationResponse,
+    APITypoSuggestionResponse
 )
 
 
@@ -213,6 +217,319 @@ class TestAnalyzeResponse:
         
         assert len(response.errors) == 2
         assert "Scanner failed" in response.errors
+    
+    def test_with_semantic_vulnerabilities(self):
+        """Test response with semantic vulnerabilities."""
+        response = AnalyzeResponse(
+            analysis_id="test-123",
+            execution_time=10.0,
+            semantic_vulnerabilities=[
+                SemanticVulnerabilityResponse(
+                    location="test.py:42",
+                    vuln_type="SQL Injection",
+                    description="SQL query uses string formatting",
+                    similar_pattern_id="001",
+                    similarity_score=0.92,
+                    suggested_fix="Use parameterized queries",
+                    severity="HIGH",
+                    confidence=0.9,
+                    source="semantic_scanner"
+                )
+            ]
+        )
+        
+        assert len(response.semantic_vulnerabilities) == 1
+        assert response.semantic_vulnerabilities[0].similarity_score == 0.92
+        assert response.semantic_vulnerabilities[0].similar_pattern_id == "001"
+    
+    def test_with_hardware_violations(self):
+        """Test response with hardware violations."""
+        response = AnalyzeResponse(
+            analysis_id="test-123",
+            execution_time=5.0,
+            hardware_violations=[
+                HardwareViolationResponse(
+                    location="line 15",
+                    rule="voltage_limit",
+                    actual_value=35.0,
+                    expected_value=" 30V",
+                    severity="HIGH",
+                    message="Voltage exceeds maximum limit"
+                )
+            ]
+        )
+        
+        assert len(response.hardware_violations) == 1
+        assert response.hardware_violations[0].actual_value == 35.0
+        assert response.hardware_violations[0].rule == "voltage_limit"
+    
+    def test_with_lifecycle_violations(self):
+        """Test response with lifecycle violations."""
+        response = AnalyzeResponse(
+            analysis_id="test-123",
+            execution_time=5.0,
+            lifecycle_violations=[
+                LifecycleViolationResponse(
+                    location="line 20",
+                    issue="wrong_order",
+                    begin_line=25,
+                    end_line=20,
+                    message="RDI_END appears before RDI_BEGIN"
+                )
+            ]
+        )
+        
+        assert len(response.lifecycle_violations) == 1
+        assert response.lifecycle_violations[0].issue == "wrong_order"
+        assert response.lifecycle_violations[0].begin_line == 25
+    
+    def test_with_api_typo_suggestions(self):
+        """Test response with API typo suggestions."""
+        response = AnalyzeResponse(
+            analysis_id="test-123",
+            execution_time=5.0,
+            api_typo_suggestions=[
+                APITypoSuggestionResponse(
+                    location="line 10",
+                    found_api="RDI_Begn",
+                    suggested_apis=["RDI_BEGIN", "RDI_Begin"],
+                    similarity_scores=[0.95, 0.85],
+                    message="Possible typo in API name"
+                )
+            ]
+        )
+        
+        assert len(response.api_typo_suggestions) == 1
+        assert response.api_typo_suggestions[0].found_api == "RDI_Begn"
+        assert len(response.api_typo_suggestions[0].suggested_apis) == 2
+    
+    def test_with_all_new_fields(self):
+        """Test response with all new semantic analysis fields."""
+        response = AnalyzeResponse(
+            analysis_id="test-123",
+            execution_time=20.0,
+            vulnerabilities=[
+                VulnerabilityResponse(
+                    location="test.py:10",
+                    vuln_type="XSS",
+                    severity="MEDIUM",
+                    description="Unescaped output",
+                    confidence=0.8
+                )
+            ],
+            semantic_vulnerabilities=[
+                SemanticVulnerabilityResponse(
+                    location="test.py:42",
+                    vuln_type="SQL Injection",
+                    description="SQL query uses string formatting",
+                    similar_pattern_id="001",
+                    similarity_score=0.92,
+                    suggested_fix="Use parameterized queries",
+                    severity="HIGH",
+                    confidence=0.9,
+                    source="semantic_scanner"
+                )
+            ],
+            hardware_violations=[
+                HardwareViolationResponse(
+                    location="line 15",
+                    rule="voltage_limit",
+                    actual_value=35.0,
+                    expected_value=" 30V",
+                    severity="HIGH",
+                    message="Voltage exceeds maximum limit"
+                )
+            ],
+            lifecycle_violations=[
+                LifecycleViolationResponse(
+                    location="line 20",
+                    issue="wrong_order",
+                    begin_line=25,
+                    end_line=20,
+                    message="RDI_END appears before RDI_BEGIN"
+                )
+            ],
+            api_typo_suggestions=[
+                APITypoSuggestionResponse(
+                    location="line 10",
+                    found_api="RDI_Begn",
+                    suggested_apis=["RDI_BEGIN"],
+                    similarity_scores=[0.95],
+                    message="Possible typo"
+                )
+            ],
+            workflow_complete=True
+        )
+        
+        assert len(response.vulnerabilities) == 1
+        assert len(response.semantic_vulnerabilities) == 1
+        assert len(response.hardware_violations) == 1
+        assert len(response.lifecycle_violations) == 1
+        assert len(response.api_typo_suggestions) == 1
+    
+    def test_backward_compatibility_serialization(self):
+        """Test backward compatibility: response without new fields serializes correctly."""
+        response = AnalyzeResponse(
+            analysis_id="test-123",
+            vulnerabilities=[
+                VulnerabilityResponse(
+                    location="test.py:42",
+                    vuln_type="SQL Injection",
+                    severity="HIGH",
+                    description="Dangerous SQL query",
+                    confidence=0.9
+                )
+            ],
+            execution_time=15.3,
+            workflow_complete=True
+        )
+        
+        # Serialize to dict
+        data = response.model_dump()
+        
+        # Check that new fields exist with empty defaults
+        assert "semantic_vulnerabilities" in data
+        assert "hardware_violations" in data
+        assert "lifecycle_violations" in data
+        assert "api_typo_suggestions" in data
+        
+        # Check they are empty lists
+        assert data["semantic_vulnerabilities"] == []
+        assert data["hardware_violations"] == []
+        assert data["lifecycle_violations"] == []
+        assert data["api_typo_suggestions"] == []
+        
+        # Check old fields still work
+        assert data["analysis_id"] == "test-123"
+        assert len(data["vulnerabilities"]) == 1
+    
+    def test_backward_compatibility_deserialization(self):
+        """Test backward compatibility: old response format can be deserialized."""
+        # Old format without new fields
+        old_format_data = {
+            "analysis_id": "test-123",
+            "vulnerabilities": [
+                {
+                    "location": "test.py:42",
+                    "vuln_type": "SQL Injection",
+                    "severity": "HIGH",
+                    "description": "Dangerous SQL query",
+                    "confidence": 0.9
+                }
+            ],
+            "patches": [],
+            "execution_time": 15.3,
+            "errors": [],
+            "logs": [],
+            "workflow_complete": True
+        }
+        
+        # Should deserialize successfully with defaults for new fields
+        response = AnalyzeResponse(**old_format_data)
+        
+        assert response.analysis_id == "test-123"
+        assert len(response.vulnerabilities) == 1
+        assert response.semantic_vulnerabilities == []
+        assert response.hardware_violations == []
+        assert response.lifecycle_violations == []
+        assert response.api_typo_suggestions == []
+
+
+class TestSemanticVulnerabilityResponse:
+    """Test SemanticVulnerabilityResponse serialization."""
+    
+    def test_valid_semantic_vulnerability(self):
+        """Test valid semantic vulnerability response."""
+        vuln = SemanticVulnerabilityResponse(
+            location="test.py:42",
+            vuln_type="SQL Injection",
+            description="SQL query uses string formatting",
+            similar_pattern_id="001",
+            similarity_score=0.92,
+            suggested_fix="Use parameterized queries",
+            severity="HIGH",
+            confidence=0.9,
+            source="semantic_scanner"
+        )
+        
+        assert vuln.location == "test.py:42"
+        assert vuln.similarity_score == 0.92
+        assert vuln.similar_pattern_id == "001"
+        assert vuln.source == "semantic_scanner"
+    
+    def test_default_source(self):
+        """Test default source value."""
+        vuln = SemanticVulnerabilityResponse(
+            location="test.py:42",
+            vuln_type="SQL Injection",
+            description="Test",
+            similar_pattern_id="001",
+            similarity_score=0.92,
+            suggested_fix="Fix",
+            severity="HIGH",
+            confidence=0.9
+        )
+        
+        assert vuln.source == "semantic_scanner"
+
+
+class TestHardwareViolationResponse:
+    """Test HardwareViolationResponse serialization."""
+    
+    def test_valid_hardware_violation(self):
+        """Test valid hardware violation response."""
+        violation = HardwareViolationResponse(
+            location="line 15",
+            rule="voltage_limit",
+            actual_value=35.0,
+            expected_value=" 30V",
+            severity="HIGH",
+            message="Voltage exceeds maximum limit"
+        )
+        
+        assert violation.location == "line 15"
+        assert violation.rule == "voltage_limit"
+        assert violation.actual_value == 35.0
+        assert violation.severity == "HIGH"
+
+
+class TestLifecycleViolationResponse:
+    """Test LifecycleViolationResponse serialization."""
+    
+    def test_valid_lifecycle_violation(self):
+        """Test valid lifecycle violation response."""
+        violation = LifecycleViolationResponse(
+            location="line 20",
+            issue="wrong_order",
+            begin_line=25,
+            end_line=20,
+            message="RDI_END appears before RDI_BEGIN"
+        )
+        
+        assert violation.location == "line 20"
+        assert violation.issue == "wrong_order"
+        assert violation.begin_line == 25
+        assert violation.end_line == 20
+
+
+class TestAPITypoSuggestionResponse:
+    """Test APITypoSuggestionResponse serialization."""
+    
+    def test_valid_api_typo_suggestion(self):
+        """Test valid API typo suggestion response."""
+        suggestion = APITypoSuggestionResponse(
+            location="line 10",
+            found_api="RDI_Begn",
+            suggested_apis=["RDI_BEGIN", "RDI_Begin"],
+            similarity_scores=[0.95, 0.85],
+            message="Possible typo in API name"
+        )
+        
+        assert suggestion.location == "line 10"
+        assert suggestion.found_api == "RDI_Begn"
+        assert len(suggestion.suggested_apis) == 2
+        assert len(suggestion.similarity_scores) == 2
+        assert suggestion.similarity_scores[0] == 0.95
 
 
 class TestHealthResponse:

@@ -28,7 +28,7 @@ print_info() {
 }
 
 print_success() {
-    echo -e "${GREEN}[✓]${NC} $1"
+    echo -e "${GREEN}[]${NC} $1"
 }
 
 print_warning() {
@@ -36,7 +36,7 @@ print_warning() {
 }
 
 print_error() {
-    echo -e "${RED}[✗]${NC} $1"
+    echo -e "${RED}[]${NC} $1"
 }
 
 print_test_header() {
@@ -368,7 +368,7 @@ echo -e "${RED}Failed:       ${TESTS_FAILED}${NC}"
 echo ""
 
 if [ $TESTS_FAILED -eq 0 ]; then
-    print_success "All tests passed! ✓"
+    print_success "All tests passed! "
     exit 0
 else
     print_error "Some tests failed. Please review the output above."

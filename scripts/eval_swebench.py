@@ -18,7 +18,7 @@ class QwenInference:
     def __init__(self, token: str = "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", model_name: str = "Qwen/Qwen2.5-Coder-1.5B-Instruct"):
         self.model_name = model_name
         self.client = InferenceClient(token=token)
-        print(f"🔧 Using Hugging Face Inference: {self.model_name}")
+        print(f" Using Hugging Face Inference: {self.model_name}")
 
     def generate_patch(self, problem_statement: str, codebase_context: str = "", max_tokens: int = 1024) -> str:
         prompt = f"""You are an Expert Software Engineer and Security Researcher. You are given a problem description and a codebase context.
@@ -54,12 +54,12 @@ def main():
     
     args = parser.parse_args()
     
-    print(f"🚀 Loading SWE-bench dataset (split={args.split})...")
+    print(f" Loading SWE-bench dataset (split={args.split})...")
     dataset = load_dataset("princeton-nlp/SWE-bench", split=args.split)
     
     if args.limit:
         dataset = dataset.select(range(args.limit))
-        print(f"⚠️ Limiting to first {args.limit} examples")
+        print(f" Limiting to first {args.limit} examples")
 
     llm = QwenInference()
     
@@ -81,12 +81,12 @@ def main():
             "model_name_or_path": "Qwen/Qwen2.5-Coder-1.5B-Instruct"
         })
         
-    print(f"💾 Saving predictions to {args.output}")
+    print(f" Saving predictions to {args.output}")
     with open(args.output, "w") as f:
         for pred in predictions:
             f.write(json.dumps(pred) + "\n")
             
-    print("✅ Done!")
+    print(" Done!")
 
 if __name__ == "__main__":
     main()

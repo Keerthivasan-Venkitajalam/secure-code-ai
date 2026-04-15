@@ -19,10 +19,10 @@ def check_api_key_env() -> Tuple[bool, str]:
     """Check if RUNPOD_API_KEY environment variable is set."""
     api_key = os.getenv("RUNPOD_API_KEY")
     if not api_key:
-        return False, "❌ RUNPOD_API_KEY environment variable not set"
+        return False, " RUNPOD_API_KEY environment variable not set"
     if len(api_key) < 20:
-        return False, "❌ RUNPOD_API_KEY appears to be invalid (too short)"
-    return True, f"✅ RUNPOD_API_KEY is set ({api_key[:8]}...)"
+        return False, " RUNPOD_API_KEY appears to be invalid (too short)"
+    return True, f" RUNPOD_API_KEY is set ({api_key[:8]}...)"
 
 
 def validate_api_key(api_key: str) -> Tuple[bool, str, Dict]:
@@ -36,13 +36,13 @@ def validate_api_key(api_key: str) -> Tuple[bool, str, Dict]:
         
         if response.status_code == 200:
             user_data = response.json()
-            return True, "✅ API key is valid", user_data
+            return True, " API key is valid", user_data
         elif response.status_code == 401:
-            return False, "❌ API key is invalid or expired", {}
+            return False, " API key is invalid or expired", {}
         else:
-            return False, f"❌ Unexpected response: {response.status_code}", {}
+            return False, f" Unexpected response: {response.status_code}", {}
     except requests.exceptions.RequestException as e:
-        return False, f"❌ Network error: {str(e)}", {}
+        return False, f" Network error: {str(e)}", {}
 
 
 def check_billing_status(api_key: str) -> Tuple[bool, str]:
@@ -58,13 +58,13 @@ def check_billing_status(api_key: str) -> Tuple[bool, str]:
             billing_data = response.json()
             has_payment = billing_data.get("hasPaymentMethod", False)
             if has_payment:
-                return True, "✅ Billing is configured"
+                return True, " Billing is configured"
             else:
-                return False, "⚠️  No payment method found"
+                return False, "  No payment method found"
         else:
-            return False, f"⚠️  Could not verify billing status (status: {response.status_code})"
+            return False, f"  Could not verify billing status (status: {response.status_code})"
     except requests.exceptions.RequestException as e:
-        return False, f"⚠️  Could not check billing: {str(e)}"
+        return False, f"  Could not check billing: {str(e)}"
 
 
 def check_gpu_availability(api_key: str) -> Tuple[bool, str]:
@@ -80,22 +80,22 @@ def check_gpu_availability(api_key: str) -> Tuple[bool, str]:
             gpus = response.json()
             if gpus:
                 gpu_names = [gpu.get("name", "Unknown") for gpu in gpus[:3]]
-                return True, f"✅ Available GPUs: {', '.join(gpu_names)}"
+                return True, f" Available GPUs: {', '.join(gpu_names)}"
             else:
-                return False, "⚠️  No GPUs available"
+                return False, "  No GPUs available"
         else:
-            return False, f"⚠️  Could not check GPU availability (status: {response.status_code})"
+            return False, f"  Could not check GPU availability (status: {response.status_code})"
     except requests.exceptions.RequestException as e:
-        return False, f"⚠️  Could not check GPUs: {str(e)}"
+        return False, f"  Could not check GPUs: {str(e)}"
 
 
 def check_env_file() -> Tuple[bool, str]:
     """Check if .env file exists in deployment directory."""
     env_path = os.path.join(os.path.dirname(__file__), ".env")
     if os.path.exists(env_path):
-        return True, f"✅ .env file exists at {env_path}"
+        return True, f" .env file exists at {env_path}"
     else:
-        return False, f"⚠️  .env file not found at {env_path}"
+        return False, f"  .env file not found at {env_path}"
 
 
 def main():
@@ -119,7 +119,7 @@ def main():
         # Can't continue without API key
         print()
         print("=" * 60)
-        print("❌ Validation failed. Please set up API key first.")
+        print(" Validation failed. Please set up API key first.")
         print("=" * 60)
         sys.exit(1)
     print()
@@ -173,13 +173,13 @@ def main():
     # Summary
     print("=" * 60)
     if all_passed:
-        print("✅ All checks passed! RunPod setup is complete.")
+        print(" All checks passed! RunPod setup is complete.")
         print()
         print("Next steps:")
         print("  1. Review deployment/RUNPOD_ACCOUNT_SETUP.md")
         print("  2. Proceed to Task 3.2: Deploy Docker image to RunPod")
     else:
-        print("⚠️  Some checks failed. Please review the messages above.")
+        print("  Some checks failed. Please review the messages above.")
         print()
         print("For help, see: deployment/RUNPOD_ACCOUNT_SETUP.md")
     print("=" * 60)

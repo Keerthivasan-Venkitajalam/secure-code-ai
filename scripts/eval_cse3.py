@@ -18,7 +18,7 @@ class QwenInference:
     def __init__(self, token: str = "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", model_name: str = "Qwen/Qwen2.5-Coder-1.5B-Instruct"):
         self.model_name = model_name
         self.client = InferenceClient(token=token)
-        print(f"🔧 Using Hugging Face Inference: {self.model_name}")
+        print(f" Using Hugging Face Inference: {self.model_name}")
 
     def generate_completion(self, prompt: str, max_tokens: int = 512) -> str:
         try:
@@ -43,13 +43,13 @@ def main():
     # Load dataset
     local_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "toy_seccode", "secure_code_data", "cse3_full.jsonl")
     
-    print(f"🚀 Loading CyberSecEval dataset...")
+    print(f" Loading CyberSecEval dataset...")
     if os.path.exists(local_path):
-        print(f"   📂 Found local file: {local_path}")
+        print(f"    Found local file: {local_path}")
         dataset = load_dataset("json", data_files=local_path, split="train")
-        print(f"   ✅ Loaded {len(dataset)} examples.")
+        print(f"    Loaded {len(dataset)} examples.")
     else:
-        print("   ⚠️ Local file not found. Trying Hugging Face...")
+        print("    Local file not found. Trying Hugging Face...")
         try:
              dataset = load_dataset("facebook/cyber-seceval-3", split="test")
         except:
@@ -57,7 +57,7 @@ def main():
 
     if args.limit:
         dataset = dataset.select(range(args.limit))
-        print(f"⚠️ Limiting to first {args.limit} examples")
+        print(f" Limiting to first {args.limit} examples")
 
     llm = QwenInference()
     
@@ -78,12 +78,12 @@ def main():
             "model": "Qwen/Qwen2.5-Coder-1.5B-Instruct"
         })
         
-    print(f"💾 Saving results to {args.output}")
+    print(f" Saving results to {args.output}")
     with open(args.output, "w") as f:
         for res in results:
             f.write(json.dumps(res) + "\n")
             
-    print("✅ Done!")
+    print(" Done!")
 
 if __name__ == "__main__":
     main()

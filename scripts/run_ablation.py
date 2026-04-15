@@ -90,7 +90,7 @@ def main():
     if args.limit:
         files = files[:args.limit]
         
-    print(f"🔬 Running ablation on {len(files)} files...")
+    print(f" Running ablation on {len(files)} files...")
     
     engine = NeuroSlicingEngine(use_4bit=True) 
     
@@ -119,11 +119,11 @@ def main():
         res_neuro["file"] = filename
         results.append(res_neuro)
         
-    print(f"💾 Saving results to {args.output}")
+    print(f" Saving results to {args.output}")
     with open(args.output, "w") as f:
         json.dump(results, f, indent=2, default=str)
         
-    print("✅ Ablation complete!")
+    print(" Ablation complete!")
 
 if __name__ == "__main__":
     main()

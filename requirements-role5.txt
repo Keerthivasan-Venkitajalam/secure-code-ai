@@ -1,0 +1,18 @@
+# Minimal dependencies for Role 5 (Security & Binary Analysis)
+# This avoids the complex conflicts between fastapi/runpod/semgrep
+
+# Core Agent Framework
+langgraph>=0.2.0
+langchain>=0.3.0
+langchain-community>=0.3.0
+pydantic>=2.5.0
+
+# Binary Analysis
+angr>=9.2.0
+crosshair-tool>=0.0.99
+
+# Exploit Generation Support
+pwntools>=4.11.0
+
+# Development/Testing
+pytest>=7.4.0

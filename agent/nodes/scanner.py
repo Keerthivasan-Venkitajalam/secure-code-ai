@@ -623,7 +623,7 @@ Example: TRUE_POSITIVE: 0.9
             # Combine all parts
             full_context = "\n\n".join(context_parts)
             
-            # Check token limit (rough estimate: 1 token ≈ 4 characters)
+            # Check token limit (rough estimate: 1 token  4 characters)
             # Limit to ~8k tokens (32k characters) to leave room for prompt
             max_chars = 32000
             if len(full_context) > max_chars:

@@ -98,6 +98,104 @@ class PatchResponse(BaseModel):
     )
 
 
+class SemanticVulnerabilityResponse(BaseModel):
+    """Response model for semantic vulnerability detection."""
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "location": "app/database.py:42",
+                "vuln_type": "SQL Injection",
+                "description": "SQL query uses string formatting with user input",
+                "similar_pattern_id": "001",
+                "similarity_score": 0.92,
+                "suggested_fix": "Use parameterized queries instead",
+                "severity": "HIGH",
+                "confidence": 0.9,
+                "source": "semantic_scanner"
+            }
+        }
+    )
+    
+    location: str = Field(description="Line number or range")
+    vuln_type: str = Field(description="Type of vulnerability")
+    description: str = Field(description="Human-readable description")
+    similar_pattern_id: str = Field(description="ID of matching pattern")
+    similarity_score: float = Field(description="Similarity score (0.0 to 1.0)")
+    suggested_fix: str = Field(description="Suggested fix from pattern")
+    severity: str = Field(description="Severity level (LOW, MEDIUM, HIGH, CRITICAL)")
+    confidence: float = Field(description="Confidence score (0.0 to 1.0)")
+    source: str = Field(default="semantic_scanner", description="Source of detection")
+
+
+class HardwareViolationResponse(BaseModel):
+    """Response model for hardware constraint violation."""
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "location": "line 15",
+                "rule": "voltage_limit",
+                "actual_value": 35.0,
+                "expected_value": " 30V",
+                "severity": "HIGH",
+                "message": "Voltage exceeds maximum limit of 30V"
+            }
+        }
+    )
+    
+    location: str = Field(description="Line number")
+    rule: str = Field(description="Rule violated (e.g., 'voltage_limit')")
+    actual_value: Any = Field(description="Actual value found")
+    expected_value: Any = Field(description="Expected value/range")
+    severity: str = Field(description="Severity level (LOW, MEDIUM, HIGH)")
+    message: str = Field(description="Human-readable message")
+
+
+class LifecycleViolationResponse(BaseModel):
+    """Response model for lifecycle ordering violation."""
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "location": "line 20",
+                "issue": "wrong_order",
+                "begin_line": 25,
+                "end_line": 20,
+                "message": "RDI_END appears before RDI_BEGIN"
+            }
+        }
+    )
+    
+    location: str = Field(description="Line number")
+    issue: str = Field(description="Type of issue (e.g., 'missing_end', 'wrong_order')")
+    begin_line: int = Field(description="Line with RDI_BEGIN")
+    end_line: int = Field(description="Line with RDI_END (if present)")
+    message: str = Field(description="Human-readable message")
+
+
+class APITypoSuggestionResponse(BaseModel):
+    """Response model for API typo suggestion."""
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "location": "line 10",
+                "found_api": "RDI_Begn",
+                "suggested_apis": ["RDI_BEGIN", "RDI_Begin"],
+                "similarity_scores": [0.95, 0.85],
+                "message": "Possible typo in API name 'RDI_Begn'. Did you mean 'RDI_BEGIN'?"
+            }
+        }
+    )
+    
+    location: str = Field(description="Line number")
+    found_api: str = Field(description="API name found in code")
+    suggested_apis: List[str] = Field(description="Suggested correct API names")
+    similarity_scores: List[float] = Field(description="Similarity scores for each suggestion")
+    message: str = Field(description="Human-readable message")
+
+
 class AnalyzeResponse(BaseModel):
     """Response model for code analysis."""
     
@@ -124,7 +222,11 @@ class AnalyzeResponse(BaseModel):
                 "execution_time": 15.3,
                 "errors": [],
                 "logs": ["Scanner Agent: Found 1 potential vulnerabilities"],
-                "workflow_complete": True
+                "workflow_complete": True,
+                "semantic_vulnerabilities": [],
+                "hardware_violations": [],
+                "lifecycle_violations": [],
+                "api_typo_suggestions": []
             }
         }
     )
@@ -154,6 +256,23 @@ class AnalyzeResponse(BaseModel):
     queue_depth: Optional[int] = Field(
         None,
         description="Current request queue depth (included when under load)"
+    )
+    # New fields for semantic analysis (backward compatible with default_factory)
+    semantic_vulnerabilities: List[SemanticVulnerabilityResponse] = Field(
+        default_factory=list,
+        description="Vulnerabilities detected via semantic similarity"
+    )
+    hardware_violations: List[HardwareViolationResponse] = Field(
+        default_factory=list,
+        description="Hardware constraint violations"
+    )
+    lifecycle_violations: List[LifecycleViolationResponse] = Field(
+        default_factory=list,
+        description="Lifecycle ordering violations"
+    )
+    api_typo_suggestions: List[APITypoSuggestionResponse] = Field(
+        default_factory=list,
+        description="API typo suggestions"
     )
 
 
@@ -222,3 +341,119 @@ class ErrorResponse(BaseModel):
     detail: str = Field(description="Error details")
     request_id: str = Field(description="Request identifier for tracking")
     timestamp: str = Field(description="Error timestamp (ISO 8601)")
+
+
+class SimilarPatternResponse(BaseModel):
+    """Response model for a similar bug pattern."""
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "pattern_id": "001",
+                "explanation": "SQL injection vulnerability in string formatting",
+                "context": "Using f-strings or % formatting with user input in SQL queries",
+                "buggy_code": "query = f\"SELECT * FROM users WHERE id={user_id}\"",
+                "correct_code": "query = \"SELECT * FROM users WHERE id=?\"\ncursor.execute(query, (user_id,))",
+                "similarity_score": 0.92,
+                "category": "sql_injection"
+            }
+        }
+    )
+    
+    pattern_id: str = Field(description="Unique pattern identifier")
+    explanation: str = Field(description="Description of what the bug is")
+    context: str = Field(description="Additional context about when this bug occurs")
+    buggy_code: str = Field(description="Example of code with the bug")
+    correct_code: str = Field(description="Example of corrected code")
+    similarity_score: float = Field(description="Similarity score (0.0 to 1.0)")
+    category: str = Field(description="Bug category")
+
+
+class SearchSimilarRequest(BaseModel):
+    """Request model for semantic similarity search."""
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "query": "SELECT * FROM users WHERE username='{}'",
+                "top_k": 5
+            }
+        }
+    )
+    
+    query: str = Field(
+        ...,
+        min_length=1,
+        description="Search query (code snippet or description)"
+    )
+    top_k: int = Field(
+        default=10,
+        ge=1,
+        le=50,
+        description="Number of similar patterns to return"
+    )
+    
+    @field_validator('query')
+    @classmethod
+    def validate_query(cls, v: str) -> str:
+        """Validate query is not empty or whitespace only."""
+        if not v.strip():
+            raise ValueError("Query cannot be empty or whitespace only")
+        return v
+
+
+class SearchSimilarResponse(BaseModel):
+    """Response model for semantic similarity search."""
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "query": "SELECT * FROM users WHERE username='{}'",
+                "similar_patterns": [
+                    {
+                        "pattern_id": "001",
+                        "explanation": "SQL injection vulnerability",
+                        "context": "Using string formatting with user input",
+                        "buggy_code": "query = f\"SELECT * FROM users WHERE id={user_id}\"",
+                        "correct_code": "query = \"SELECT * FROM users WHERE id=?\"\ncursor.execute(query, (user_id,))",
+                        "similarity_score": 0.92,
+                        "category": "sql_injection"
+                    }
+                ],
+                "count": 1
+            }
+        }
+    )
+    
+    query: str = Field(description="Original search query")
+    similar_patterns: List[SimilarPatternResponse] = Field(
+        default_factory=list,
+        description="List of similar bug patterns"
+    )
+    count: int = Field(description="Number of patterns returned")
+
+
+class KnowledgeBaseStatsResponse(BaseModel):
+    """Response model for knowledge base statistics."""
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "pattern_count": 150,
+                "categories": {
+                    "sql_injection": 25,
+                    "xss": 30,
+                    "buffer_overflow": 20,
+                    "general": 75
+                },
+                "last_updated": "2025-01-24T10:30:00.000Z"
+            }
+        }
+    )
+    
+    pattern_count: int = Field(description="Total number of bug patterns in knowledge base")
+    categories: Dict[str, int] = Field(description="Pattern count by category")
+    last_updated: Optional[str] = Field(
+        None,
+        description="Last update timestamp (ISO 8601)"
+    )

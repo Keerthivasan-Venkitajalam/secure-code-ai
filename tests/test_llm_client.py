@@ -395,7 +395,7 @@ def test_property_llm_configuration_enforcement(mock_vllm_module, prompt, max_to
     Property 17: LLM Configuration Enforcement
     
     For any LLM generation request:
-    - The request should use max_tokens ≤ 2048 (default) or specified value
+    - The request should use max_tokens  2048 (default) or specified value
     - The request should use temperature = 0.2 (default) or specified value
     - This ensures deterministic, focused responses
     
@@ -429,7 +429,7 @@ def test_property_llm_configuration_enforcement(mock_vllm_module, prompt, max_to
         # Should use specified value
         assert actual_max_tokens == max_tokens
     
-    # Verify max_tokens is always ≤ 2048 when using defaults
+    # Verify max_tokens is always  2048 when using defaults
     if max_tokens is None:
         assert actual_max_tokens <= 2048
     

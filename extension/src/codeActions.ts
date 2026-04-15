@@ -89,7 +89,27 @@ export function registerApplyPatchCommand(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.commands.registerCommand(
             'securecodai.applyPatch',
-            async (document: vscode.TextDocument, patch: any) => {
+            async (document?: vscode.TextDocument, patch?: any) => {
+                // If document is not provided, try to get the active editor's document
+                if (!document) {
+                    const editor = vscode.window.activeTextEditor;
+                    if (!editor) {
+                        vscode.window.showErrorMessage('SecureCodeAI: No active document to apply patch to');
+                        return;
+                    }
+                    document = editor.document;
+                }
+
+                if (!patch) {
+                    vscode.window.showErrorMessage('SecureCodeAI: No patch available. Run analysis first.');
+                    return;
+                }
+
+                if (!patch.code) {
+                    vscode.window.showErrorMessage('SecureCodeAI: Patch does not contain valid code');
+                    return;
+                }
+
                 const edit = new vscode.WorkspaceEdit();
                 const fullRange = new vscode.Range(
                     document.positionAt(0),
@@ -112,7 +132,22 @@ export function registerApplyPatchCommand(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.commands.registerCommand(
             'securecodai.showDiff',
-            async (document: vscode.TextDocument, patch: any) => {
+            async (document?: vscode.TextDocument, patch?: any) => {
+                // If document is not provided, try to get the active editor's document
+                if (!document) {
+                    const editor = vscode.window.activeTextEditor;
+                    if (!editor) {
+                        vscode.window.showErrorMessage('SecureCodeAI: No active document');
+                        return;
+                    }
+                    document = editor.document;
+                }
+
+                if (!patch || !patch.code) {
+                    vscode.window.showErrorMessage('SecureCodeAI: No patch available to show diff');
+                    return;
+                }
+
                 // Create a temporary document with the patched code
                 const patchedUri = vscode.Uri.parse(`securecodai:${document.fileName}.patched`);
                 
@@ -130,7 +165,7 @@ export function registerApplyPatchCommand(context: vscode.ExtensionContext) {
                     'vscode.diff',
                     document.uri,
                     patchedUri,
-                    `${document.fileName} ↔ SecureCodeAI Patch`
+                    `${document.fileName}  SecureCodeAI Patch`
                 );
                 
                 // Clean up

@@ -23,9 +23,9 @@ def download_model(model_name: str = "deepseek-ai/DeepSeek-Coder-V2-Lite-Instruc
     Args:
         model_name: Model identifier on Hugging Face Hub
     """
-    print(f"🚀 Downloading model: {model_name}")
-    print(f"📦 This will download ~32GB of model weights")
-    print(f"💾 Cache location: {Path.home() / '.cache' / 'huggingface'}")
+    print(f" Downloading model: {model_name}")
+    print(f" This will download ~32GB of model weights")
+    print(f" Cache location: {Path.home() / '.cache' / 'huggingface'}")
     print()
     
     # Check available disk space
@@ -34,14 +34,14 @@ def download_model(model_name: str = "deepseek-ai/DeepSeek-Coder-V2-Lite-Instruc
     
     try:
         # Download tokenizer (small, ~5MB)
-        print("📥 Step 1/2: Downloading tokenizer...")
+        print(" Step 1/2: Downloading tokenizer...")
         tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
-        print("✅ Tokenizer downloaded successfully")
+        print(" Tokenizer downloaded successfully")
         print()
         
         # Download model weights (large, ~32GB)
-        print("📥 Step 2/2: Downloading model weights...")
-        print("⏳ This may take 10-30 minutes depending on your internet speed...")
+        print(" Step 2/2: Downloading model weights...")
+        print(" This may take 10-30 minutes depending on your internet speed...")
         
         model = AutoModelForCausalLM.from_pretrained(
             model_name,
@@ -50,9 +50,9 @@ def download_model(model_name: str = "deepseek-ai/DeepSeek-Coder-V2-Lite-Instruc
             low_cpu_mem_usage=True,  # Optimize memory during download
         )
         
-        print("✅ Model weights downloaded successfully")
+        print(" Model weights downloaded successfully")
         print()
-        print(f"🎉 All done! Model cached at: {cache_dir}")
+        print(f" All done! Model cached at: {cache_dir}")
         print()
         print("Next steps:")
         print("  1. Run: python poc/llm_poc.py")
@@ -65,7 +65,7 @@ def download_model(model_name: str = "deepseek-ai/DeepSeek-Coder-V2-Lite-Instruc
         return True
         
     except Exception as e:
-        print(f"❌ Error downloading model: {str(e)}")
+        print(f" Error downloading model: {str(e)}")
         print()
         print("Troubleshooting:")
         print("  1. Check your internet connection")

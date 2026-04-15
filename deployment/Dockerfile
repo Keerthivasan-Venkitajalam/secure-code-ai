@@ -34,6 +34,12 @@ RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 COPY requirements.txt /app/
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Install semantic scanning dependencies
+RUN pip install --no-cache-dir \
+    sentence-transformers==2.2.2 \
+    chromadb==0.4.22 \
+    rapidfuzz==3.5.2
+
 # Install GPU-specific dependencies if enabled
 ARG GPU=false
 RUN if [ "$GPU" = "true" ]; then \
@@ -47,6 +53,18 @@ COPY api/ /app/api/
 COPY agent/ /app/agent/
 COPY __init__.py /app/
 
+# Create data directories for semantic scanning
+RUN mkdir -p /app/data/knowledge_base \
+    /app/data/vector_store \
+    /app/data/embedding_model
+
+# Copy knowledge base if it exists
+COPY data/knowledge_base/samples.csv /app/data/knowledge_base/ 2>/dev/null || echo "Knowledge base not found, will be created at runtime"
+
+# Optionally download embedding model at build time (uncomment to enable)
+# This adds ~500MB to image size but speeds up first startup
+# RUN python -c "from sentence_transformers import SentenceTransformer; model = SentenceTransformer('BAAI/bge-base-en-v1.5'); model.save('/app/data/embedding_model/')"
+
 # Create models directory for persistent volume mount
 RUN mkdir -p /models
 
@@ -59,6 +77,18 @@ ENV SECUREAI_HOST=0.0.0.0
 ENV SECUREAI_PORT=8000
 ENV SECUREAI_MODEL_PATH=/models/deepseek-coder-v2-lite-instruct
 ENV SECUREAI_LOG_LEVEL=INFO
+
+# Semantic scanning environment variables
+ENV ENABLE_SEMANTIC_SCANNING=true
+ENV KNOWLEDGE_BASE_PATH=/app/data/knowledge_base/samples.csv
+ENV EMBEDDING_MODEL_NAME=BAAI/bge-base-en-v1.5
+ENV EMBEDDING_MODEL_PATH=/app/data/embedding_model
+ENV VECTOR_STORE_PATH=/app/data/vector_store
+ENV SIMILARITY_THRESHOLD=0.7
+ENV TOP_K_RESULTS=10
+ENV ENABLE_HARDWARE_VALIDATION=true
+ENV ENABLE_LIFECYCLE_VALIDATION=true
+ENV ENABLE_API_TYPO_DETECTION=true
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \

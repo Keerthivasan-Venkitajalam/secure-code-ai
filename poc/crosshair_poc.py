@@ -45,11 +45,11 @@ class CrossHairVerifier:
                 timeout=5
             )
             if result.returncode == 0:
-                print(f"✅ CrossHair version: {result.stdout.strip()}")
+                print(f" CrossHair version: {result.stdout.strip()}")
             else:
                 raise RuntimeError("CrossHair not found")
         except (subprocess.SubprocessError, FileNotFoundError):
-            print("❌ Error: CrossHair not installed")
+            print(" Error: CrossHair not installed")
             print("Install with: pip install crosshair-tool z3-solver")
             exit(1)
     
@@ -163,7 +163,7 @@ def main():
     verifier = CrossHairVerifier(timeout=args.timeout)
     
     # Example 1: SQL Injection Vulnerability
-    print("📝 Example 1: SQL Injection Detection\n")
+    print(" Example 1: SQL Injection Detection\n")
     
     vulnerable_code = '''def execute_query(user_input: str) -> str:
     """Execute SQL query with user input."""
@@ -182,7 +182,7 @@ def main():
     print("\nContract (Formal Specification):")
     print(sql_contract)
     
-    print("\n🔍 Running symbolic execution...")
+    print("\n Running symbolic execution...")
     result1 = verifier.verify_code_with_contract(vulnerable_code, sql_contract)
     
     print(f"\n{'='*70}")
@@ -192,18 +192,18 @@ def main():
     print(f"Execution Time: {result1.execution_time:.2f}s")
     
     if result1.counterexample:
-        print(f"\n⚠️  VULNERABILITY FOUND!")
+        print(f"\n  VULNERABILITY FOUND!")
         print(f"Counterexample (Exploit PoC):")
         print(result1.counterexample)
     elif result1.error_message:
-        print(f"\n❌ Verification Error:")
+        print(f"\n Verification Error:")
         print(result1.error_message)
     else:
-        print("\n✅ No vulnerabilities detected")
+        print("\n No vulnerabilities detected")
     
     # Example 2: Buffer Overflow (Integer Range)
     print(f"\n\n{'='*70}")
-    print("📝 Example 2: Integer Overflow Detection\n")
+    print(" Example 2: Integer Overflow Detection\n")
     
     overflow_code = '''def allocate_buffer(size: int) -> list:
     """Allocate buffer of given size."""
@@ -221,7 +221,7 @@ def main():
     print("\nContract:")
     print(overflow_contract)
     
-    print("\n🔍 Running symbolic execution...")
+    print("\n Running symbolic execution...")
     result2 = verifier.verify_code_with_contract(overflow_code, overflow_contract)
     
     print(f"\n{'='*70}")
@@ -231,14 +231,14 @@ def main():
     print(f"Execution Time: {result2.execution_time:.2f}s")
     
     if result2.counterexample:
-        print(f"\n⚠️  VULNERABILITY FOUND!")
+        print(f"\n  VULNERABILITY FOUND!")
         print(f"Counterexample:")
         print(result2.counterexample)
     elif result2.error_message:
-        print(f"\n❌ Verification Error:")
+        print(f"\n Verification Error:")
         print(result2.error_message)
     else:
-        print("\n✅ No vulnerabilities detected")
+        print("\n No vulnerabilities detected")
     
     print(f"\n{'='*70}")
     print("SUMMARY")

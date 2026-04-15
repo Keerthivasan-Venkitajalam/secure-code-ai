@@ -20,10 +20,10 @@ ENABLE_GPU="${SECUREAI_ENABLE_GPU:-true}"
 # Function to check if model exists
 check_model_exists() {
     if [ -d "$MODEL_PATH" ] && [ -f "$MODEL_PATH/config.json" ]; then
-        echo -e "${GREEN}✓ Model found at $MODEL_PATH${NC}"
+        echo -e "${GREEN} Model found at $MODEL_PATH${NC}"
         return 0
     else
-        echo -e "${YELLOW}✗ Model not found at $MODEL_PATH${NC}"
+        echo -e "${YELLOW} Model not found at $MODEL_PATH${NC}"
         return 1
     fi
 }
@@ -46,10 +46,10 @@ download_model() {
         --local-dir-use-symlinks False
     
     if [ $? -eq 0 ]; then
-        echo -e "${GREEN}✓ Model downloaded successfully${NC}"
+        echo -e "${GREEN} Model downloaded successfully${NC}"
         return 0
     else
-        echo -e "${RED}✗ Model download failed${NC}"
+        echo -e "${RED} Model download failed${NC}"
         return 1
     fi
 }
@@ -66,7 +66,7 @@ graceful_shutdown() {
         # Wait for graceful shutdown (max 30 seconds)
         for i in {1..30}; do
             if ! kill -0 "$MAIN_PID" 2>/dev/null; then
-                echo -e "${GREEN}✓ API server stopped gracefully${NC}"
+                echo -e "${GREEN} API server stopped gracefully${NC}"
                 break
             fi
             sleep 1
@@ -89,10 +89,10 @@ trap graceful_shutdown SIGTERM SIGINT
 # Check GPU availability
 if [ "$ENABLE_GPU" = "true" ]; then
     if command -v nvidia-smi &> /dev/null; then
-        echo -e "${GREEN}✓ GPU detected:${NC}"
+        echo -e "${GREEN} GPU detected:${NC}"
         nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
     else
-        echo -e "${YELLOW}⚠ GPU support enabled but nvidia-smi not found${NC}"
+        echo -e "${YELLOW} GPU support enabled but nvidia-smi not found${NC}"
         echo -e "${YELLOW}  Running in CPU mode${NC}"
         export SECUREAI_ENABLE_GPU=false
     fi

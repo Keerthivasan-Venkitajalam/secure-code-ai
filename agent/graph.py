@@ -4,6 +4,7 @@ Defines the 4-agent cyclic state machine for vulnerability detection and patchin
 """
 
 import os
+import logging
 from typing import Dict, Any, Literal, Optional
 from langgraph.graph import StateGraph, END
 
@@ -12,6 +13,13 @@ from .nodes.scanner import ScannerAgent
 from .nodes.speculator import SpeculatorAgent
 from .nodes.symbot import SymBotAgent
 from .nodes.patcher import PatcherAgent
+from .nodes.workflow_nodes import (
+    semantic_scanner_node,
+    validator_suite_node,
+    merge_results_node
+)
+
+logger = logging.getLogger(__name__)
 
 # Optional imports - may fail on Windows or when SKIP_ANGR is set
 SKIP_ANGR = os.getenv("SKIP_ANGR", "false").lower() == "true"
@@ -81,70 +89,135 @@ def create_workflow(
     speculator: SpeculatorAgent,
     symbot: SymBotAgent,
     patcher: PatcherAgent,
-    binary_analyzer: Optional[BinaryAnalyzerAgent] = None,
-    smart_contract_agent: Optional[SmartContractAgent] = None,
+    binary_analyzer: BinaryAnalyzerAgent,
+    smart_contract_agent: SmartContractAgent,
+    semantic_scanner=None,
+    validator_suite=None,
 ) -> StateGraph:
-
-
     """
     Create the SecureCodeAI LangGraph workflow.
     
     Workflow:
     1. Scanner: Identify vulnerability hotspots using static analysis + LLM
-    2. Speculator: Generate formal contracts (hypotheses)
-    3. SymBot: Verify with symbolic execution (CrossHair/Angr)
-    4. Patcher: Generate and verify patch
-    5. Loop back to SymBot if patch fails verification
+    2. Semantic Scanner (optional): Detect bugs using RAG-based semantic matching
+    3. Validator Suite (optional): Run specialized validators (hardware, lifecycle, API)
+    4. Merge Results: Combine static and semantic vulnerabilities
+    5. Speculator: Generate formal contracts (hypotheses)
+    6. SymBot: Verify with symbolic execution (CrossHair/Angr)
+    7. Patcher: Generate and verify patch
+    8. Loop back to SymBot if patch fails verification
     
     Args:
         scanner: Scanner agent instance
         speculator: Speculator agent instance
         symbot: SymBot agent instance
         patcher: Patcher agent instance
+        binary_analyzer: Binary analyzer agent instance
+        smart_contract_agent: Smart contract agent instance
+        semantic_scanner: Optional semantic scanner instance
+        validator_suite: Optional validator suite instance
         
     Returns:
         Compiled LangGraph workflow
+        
+    Validates: Requirements 3.1, 3.2, 3.3, 3.4
     """
     # Initialize state graph
     workflow = StateGraph(AgentState)
     
-    # Add nodes
-    workflow.add_node("scanner", scanner.execute)
+    # Add scanner node with error handling wrapper for graceful degradation
+    def scanner_wrapper(state: AgentState) -> AgentState:
+        """Wrapper for scanner with error handling for graceful degradation."""
+        try:
+            return scanner.execute(state)
+        except Exception as e:
+            # Handle errors gracefully - don't fail the entire workflow
+            error_msg = f"Scanner Agent: Error - {str(e)}"
+            logger.error(error_msg, exc_info=True)
+            state["errors"].append(error_msg)
+            state["logs"].append("Scanner Agent: Failed, continuing with empty results")
+            # Ensure vulnerabilities field exists even on failure
+            if "vulnerabilities" not in state:
+                state["vulnerabilities"] = []
+            return state
+    
+    # Add existing nodes
+    workflow.add_node("scanner", scanner_wrapper)
     workflow.add_node("speculator", speculator.execute)
     workflow.add_node("symbot", symbot.execute)
     workflow.add_node("patcher", patcher.execute)
+    
+    # Add optional agents only if available
     if binary_analyzer is not None:
         workflow.add_node("binary_analyzer", binary_analyzer.execute)
     if smart_contract_agent is not None:
         workflow.add_node("smart_contract_agent", smart_contract_agent.execute)
     
-    def route_start(state: AgentState) -> str:
+    # Add new semantic scanning nodes (if enabled)
+    if semantic_scanner is not None:
+        # Create wrapper functions that pass the scanner/validator instances
+        async def semantic_scanner_wrapper(state: AgentState) -> AgentState:
+            return await semantic_scanner_node(state, semantic_scanner)
+        
+        workflow.add_node("semantic_scanner", semantic_scanner_wrapper)
+    
+    if validator_suite is not None:
+        def validator_suite_wrapper(state: AgentState) -> AgentState:
+            return validator_suite_node(state, validator_suite)
+        
+        workflow.add_node("validator_suite", validator_suite_wrapper)
+    
+    # Always add merge_results node (handles case when semantic scanner is disabled)
+    workflow.add_node("merge_results", merge_results_node)
+    
+    def route_start(state: AgentState) -> Literal["scanner", "binary_analyzer", "smart_contract_agent"]:
         if state.get("binary_path") and binary_analyzer is not None:
             return "binary_analyzer"
         if state.get("file_path", "").endswith(".sol") and smart_contract_agent is not None:
             return "smart_contract_agent"
         return "scanner"
 
-    entry_routes = {"scanner": "scanner"}
+    # Build conditional entry point map - only include available agents
+    entry_map = {"scanner": "scanner"}
     if binary_analyzer is not None:
-        entry_routes["binary_analyzer"] = "binary_analyzer"
+        entry_map["binary_analyzer"] = "binary_analyzer"
     if smart_contract_agent is not None:
-        entry_routes["smart_contract_agent"] = "smart_contract_agent"
+        entry_map["smart_contract_agent"] = "smart_contract_agent"
 
     # Set entry point
     workflow.set_conditional_entry_point(
         route_start,
-        entry_routes
+        entry_map
     )
     
+    # Add edges only for available optional agents
     if binary_analyzer is not None:
         workflow.add_edge("binary_analyzer", END)
     if smart_contract_agent is not None:
         workflow.add_edge("smart_contract_agent", END)
     
-    # Add conditional edges
+    # Configure workflow based on whether semantic scanning is enabled
+    # Requirements 3.1, 3.2, 3.3, 3.4: Sequential execution with graceful degradation
+    # Note: True parallel execution would require Annotated state keys in LangGraph
+    if semantic_scanner is not None:
+        # Sequential execution: scanner -> semantic_scanner -> merge_results
+        # This provides the same benefits (both scanners run) with graceful degradation
+        workflow.add_edge("scanner", "semantic_scanner")
+        
+        # Run validator suite after semantic scanner
+        if validator_suite is not None:
+            workflow.add_edge("semantic_scanner", "validator_suite")
+            workflow.add_edge("validator_suite", "merge_results")
+        else:
+            workflow.add_edge("semantic_scanner", "merge_results")
+    else:
+        # No semantic scanning: scanner goes directly to merge_results
+        # Merge node handles case when semantic results are empty
+        workflow.add_edge("scanner", "merge_results")
+    
+    # After merging results, route based on vulnerabilities found
     workflow.add_conditional_edges(
-        "scanner",
+        "merge_results",
         route_after_scan,
         {
             "speculator": "speculator",
@@ -177,13 +250,20 @@ def create_workflow(
     return workflow.compile()
 
 
-def run_analysis(code: str, file_path: str = "unknown") -> AgentState:
+def run_analysis(
+    code: str,
+    file_path: str = "unknown",
+    semantic_scanner=None,
+    validator_suite=None
+) -> AgentState:
     """
     Convenience function to run full analysis on code.
     
     Args:
         code: Source code to analyze
         file_path: Path to the file (for context)
+        semantic_scanner: Optional semantic scanner instance
+        validator_suite: Optional validator suite instance
         
     Returns:
         Final AgentState with all results
@@ -193,11 +273,20 @@ def run_analysis(code: str, file_path: str = "unknown") -> AgentState:
     speculator = SpeculatorAgent()
     symbot = SymBotAgent()
     patcher = PatcherAgent()
-    binary_analyzer = BinaryAnalyzerAgent() if BinaryAnalyzerAgent is not None else None
-    smart_contract_agent = SmartContractAgent() if SmartContractAgent is not None else None
+    binary_analyzer = BinaryAnalyzerAgent()
+    smart_contract_agent = SmartContractAgent()
     
-    # Create workflow
-    app = create_workflow(scanner, speculator, symbot, patcher, binary_analyzer, smart_contract_agent)
+    # Create workflow with optional semantic components
+    app = create_workflow(
+        scanner,
+        speculator,
+        symbot,
+        patcher,
+        binary_analyzer,
+        smart_contract_agent,
+        semantic_scanner=semantic_scanner,
+        validator_suite=validator_suite
+    )
     
     # Initialize state
     initial_state: AgentState = {

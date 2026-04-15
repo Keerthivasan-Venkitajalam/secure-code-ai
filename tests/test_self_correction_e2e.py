@@ -107,10 +107,10 @@ def login(username, password):
         if call_count[0] > 0:
             # Verify LLM was called multiple times (retry happened)
             assert call_count[0] >= 2, f"Should retry on syntax error (called {call_count[0]} times)"
-            print(f"\n✓ Scanner retried {call_count[0]} times and succeeded")
+            print(f"\n Scanner retried {call_count[0]} times and succeeded")
         else:
             # Scanner didn't use LLM for this code (no vulnerability detected)
-            print("\n✓ Scanner executed (no vulnerability detected, LLM not invoked)")
+            print("\n Scanner executed (no vulnerability detected, LLM not invoked)")
     
     def test_speculator_contract_generation_with_syntax_errors(self):
         """
@@ -179,9 +179,9 @@ def login(username, password):
         if len(result_state["contracts"]) > 0:
             assert len(result_state["contracts"]) > 0, "Should generate contract"
             assert call_count[0] >= 2, f"Should retry on syntax error (called {call_count[0]} times)"
-            print(f"\n✓ Speculator retried {call_count[0]} times and succeeded")
+            print(f"\n Speculator retried {call_count[0]} times and succeeded")
         else:
-            print("\n✓ Speculator executed (LLM client may not be configured)")
+            print("\n Speculator executed (LLM client may not be configured)")
     
     def test_patcher_patch_generation_with_syntax_errors(self):
         """
@@ -267,9 +267,9 @@ def login(username):
         if len(result_state["patches"]) > 0:
             assert len(result_state["patches"]) > 0, "Should generate patch"
             assert call_count[0] >= 2, f"Should retry on syntax error (called {call_count[0]} times)"
-            print(f"\n✓ Patcher retried {call_count[0]} times and succeeded")
+            print(f"\n Patcher retried {call_count[0]} times and succeeded")
         else:
-            print("\n✓ Patcher executed (LLM client may not be configured)")
+            print("\n Patcher executed (LLM client may not be configured)")
     
     def test_max_retries_exhausted(self):
         """
@@ -343,10 +343,10 @@ def login(username):
         # If LLM was called, verify max retries
         if call_count[0] > 0:
             assert call_count[0] == 3, f"Should retry exactly 3 times (called {call_count[0]} times)"
-            print(f"\n✓ Agent retried {call_count[0]} times and failed gracefully")
+            print(f"\n Agent retried {call_count[0]} times and failed gracefully")
         else:
             # Scanner didn't use LLM for this code (no vulnerability detected)
-            print("\n✓ Scanner executed (no vulnerability detected, LLM not invoked)")
+            print("\n Scanner executed (no vulnerability detected, LLM not invoked)")
     
     def test_retry_with_error_feedback_in_prompt(self):
         """
@@ -441,12 +441,12 @@ def login(username):
                                     ["error", "syntax", "invalid", "previous", "attempt", "failed"])
             
             if has_error_feedback:
-                print("\n✓ Error feedback included in retry prompt")
+                print("\n Error feedback included in retry prompt")
             else:
-                print("\n⚠ Error feedback may not be included in retry prompt (implementation-dependent)")
+                print("\n Error feedback may not be included in retry prompt (implementation-dependent)")
         else:
             # Scanner didn't use LLM or didn't retry
-            print("\n✓ Scanner executed (LLM may not be invoked for this code)")
+            print("\n Scanner executed (LLM may not be invoked for this code)")
     
     def test_successful_first_attempt_no_retry(self):
         """
@@ -521,9 +521,9 @@ def login(username):
         # Note: May be called 0 times if Scanner doesn't use LLM for this code
         if call_count[0] > 0:
             assert call_count[0] == 1, f"Should call LLM only once on success (called {call_count[0]} times)"
-            print(f"\n✓ No retry on successful first attempt")
+            print(f"\n No retry on successful first attempt")
         else:
-            print("\n✓ Scanner executed (LLM may not be used for this code)")
+            print("\n Scanner executed (LLM may not be used for this code)")
 
 
 class TestSelfCorrectionPerformance:
@@ -556,7 +556,7 @@ class TestSelfCorrectionPerformance:
         # Verify performance is reasonable
         assert first_attempt_time < 1.0, f"Validation took too long: {first_attempt_time:.3f}s"
         
-        print(f"\n✓ Validation performance: {first_attempt_time*1000:.1f}ms")
+        print(f"\n Validation performance: {first_attempt_time*1000:.1f}ms")
 
 
 if __name__ == "__main__":

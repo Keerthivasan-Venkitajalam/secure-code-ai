@@ -330,3 +330,332 @@ class TestOrchestratorGlobalInstance:
         orch = initialize_orchestrator()
         
         assert orch.is_initialized() is True
+
+
+
+class TestOrchestratorSemanticComponents:
+    """Test semantic scanning component initialization."""
+    
+    @patch('api.orchestrator.BinaryAnalyzerAgent', Mock())
+    @patch('api.orchestrator.SmartContractAgent', Mock())
+    @patch('api.orchestrator.config')
+    @patch('api.orchestrator.create_workflow')
+    @patch('api.orchestrator.ScannerAgent')
+    @patch('api.orchestrator.KnowledgeBase')
+    @patch('api.orchestrator.EmbeddingModel')
+    @patch('api.orchestrator.VectorStore')
+    @patch('api.orchestrator.SemanticScanner')
+    @patch('api.orchestrator.ValidatorSuite')
+    def test_initialize_with_semantic_scanning_enabled(
+        self,
+        mock_validator_suite,
+        mock_semantic_scanner,
+        mock_vector_store,
+        mock_embedding_model,
+        mock_knowledge_base,
+        mock_scanner,
+        mock_create_workflow,
+        mock_config
+    ):
+        """
+        Test initialization with semantic scanning enabled.
+        
+        Validates: Requirements 10.1, 10.2
+        """
+        # Configure mock config
+        mock_config.enable_semantic_scanning = True
+        mock_config.knowledge_base_path = "data/knowledge_base/samples.csv"
+        mock_config.embedding_model_name = "BAAI/bge-base-en-v1.5"
+        mock_config.embedding_model_path = None
+        mock_config.vector_store_path = "data/vector_store"
+        mock_config.similarity_threshold = 0.7
+        mock_config.top_k_results = 10
+        mock_config.semantic_scan_timeout = 2.0
+        mock_config.enable_hardware_validation = True
+        mock_config.enable_lifecycle_validation = True
+        mock_config.enable_api_typo_detection = True
+        mock_config.embedding_batch_size = 32
+        
+        # Setup mocks
+        mock_kb_instance = Mock()
+        mock_kb_instance.patterns = {"1": Mock(), "2": Mock()}
+        mock_knowledge_base.return_value = mock_kb_instance
+        
+        mock_em_instance = Mock()
+        mock_embedding_model.return_value = mock_em_instance
+        
+        mock_vs_instance = Mock()
+        mock_vs_stats = Mock()
+        mock_vs_stats.document_count = 10  # Non-zero to skip building
+        mock_vs_instance.get_stats.return_value = mock_vs_stats
+        mock_vector_store.return_value = mock_vs_instance
+        
+        mock_ss_instance = Mock()
+        mock_semantic_scanner.return_value = mock_ss_instance
+        
+        mock_validator_instance = Mock()
+        mock_validator_suite.return_value = mock_validator_instance
+        
+        mock_workflow = Mock()
+        mock_create_workflow.return_value = mock_workflow
+        
+        # Initialize orchestrator
+        orchestrator = WorkflowOrchestrator()
+        orchestrator.initialize()
+        
+        # Verify semantic components were initialized
+        assert orchestrator.is_initialized() is True
+        assert orchestrator.semantic_scanner is not None
+        assert orchestrator.validator_suite is not None
+        
+        # Verify initialization calls
+        mock_knowledge_base.assert_called_once()
+        mock_kb_instance.load_patterns.assert_called_once()
+        mock_embedding_model.assert_called_once()
+        mock_vector_store.assert_called_once()
+        mock_semantic_scanner.assert_called_once()
+        mock_validator_suite.assert_called_once()
+    
+    @patch('api.orchestrator.BinaryAnalyzerAgent', Mock())
+    @patch('api.orchestrator.SmartContractAgent', Mock())
+    @patch('api.orchestrator.config')
+    @patch('api.orchestrator.create_workflow')
+    @patch('api.orchestrator.ScannerAgent')
+    def test_initialize_with_semantic_scanning_disabled(
+        self,
+        mock_scanner,
+        mock_create_workflow,
+        mock_config
+    ):
+        """
+        Test initialization with semantic scanning disabled.
+        
+        Validates: Requirements 10.2, 10.3
+        """
+        # Configure mock config
+        mock_config.enable_semantic_scanning = False
+        
+        # Setup mocks
+        mock_workflow = Mock()
+        mock_create_workflow.return_value = mock_workflow
+        
+        # Initialize orchestrator
+        orchestrator = WorkflowOrchestrator()
+        orchestrator.initialize()
+        
+        # Verify semantic components were NOT initialized
+        assert orchestrator.is_initialized() is True
+        assert orchestrator.semantic_scanner is None
+        assert orchestrator.validator_suite is None
+    
+    @patch('api.orchestrator.BinaryAnalyzerAgent', Mock())
+    @patch('api.orchestrator.SmartContractAgent', Mock())
+    @patch('api.orchestrator.config')
+    @patch('api.orchestrator.create_workflow')
+    @patch('api.orchestrator.ScannerAgent')
+    @patch('api.orchestrator.KnowledgeBase')
+    def test_initialize_handles_semantic_component_failure(
+        self,
+        mock_knowledge_base,
+        mock_scanner,
+        mock_create_workflow,
+        mock_config
+    ):
+        """
+        Test initialization handles semantic component initialization failure.
+        
+        Should continue with graceful degradation when semantic components fail.
+        
+        Validates: Requirements 10.2, 10.3
+        """
+        # Configure mock config
+        mock_config.enable_semantic_scanning = True
+        mock_config.knowledge_base_path = "data/knowledge_base/samples.csv"
+        
+        # Setup mocks - knowledge base fails to load
+        mock_knowledge_base.side_effect = Exception("Failed to load knowledge base")
+        
+        mock_workflow = Mock()
+        mock_create_workflow.return_value = mock_workflow
+        
+        # Initialize orchestrator - should not raise exception
+        orchestrator = WorkflowOrchestrator()
+        orchestrator.initialize()
+        
+        # Verify orchestrator initialized but semantic components are None
+        assert orchestrator.is_initialized() is True
+        assert orchestrator.semantic_scanner is None
+        assert orchestrator.validator_suite is None
+    
+    @patch('api.orchestrator.BinaryAnalyzerAgent', Mock())
+    @patch('api.orchestrator.SmartContractAgent', Mock())
+    @patch('api.orchestrator.config')
+    @patch('api.orchestrator.create_workflow')
+    @patch('api.orchestrator.ScannerAgent')
+    @patch('api.orchestrator.KnowledgeBase')
+    @patch('api.orchestrator.EmbeddingModel')
+    @patch('api.orchestrator.VectorStore')
+    def test_vector_store_built_when_empty(
+        self,
+        mock_vector_store,
+        mock_embedding_model,
+        mock_knowledge_base,
+        mock_scanner,
+        mock_create_workflow,
+        mock_config
+    ):
+        """
+        Test vector store is built when empty.
+        
+        Validates: Requirements 10.1
+        """
+        # Configure mock config
+        mock_config.enable_semantic_scanning = True
+        mock_config.knowledge_base_path = "data/knowledge_base/samples.csv"
+        mock_config.embedding_model_name = "BAAI/bge-base-en-v1.5"
+        mock_config.vector_store_path = "data/vector_store"
+        mock_config.embedding_batch_size = 32
+        
+        # Setup mocks
+        mock_pattern1 = Mock()
+        mock_pattern1.id = "1"
+        mock_pattern1.explanation = "Bug 1"
+        mock_pattern1.buggy_code = "bad code"
+        mock_pattern1.category = "test"
+        mock_pattern1.severity = "high"
+        
+        mock_kb_instance = Mock()
+        mock_kb_instance.patterns = {"1": mock_pattern1}
+        mock_kb_instance.get_all_patterns.return_value = [mock_pattern1]
+        mock_knowledge_base.return_value = mock_kb_instance
+        
+        mock_em_instance = Mock()
+        mock_em_instance.encode_batch.return_value = [[0.1, 0.2, 0.3]]
+        mock_embedding_model.return_value = mock_em_instance
+        
+        mock_vs_instance = Mock()
+        mock_vs_stats = Mock()
+        mock_vs_stats.document_count = 0  # Empty - should trigger build
+        mock_vs_instance.get_stats.return_value = mock_vs_stats
+        mock_vector_store.return_value = mock_vs_instance
+        
+        mock_workflow = Mock()
+        mock_create_workflow.return_value = mock_workflow
+        
+        # Initialize orchestrator
+        orchestrator = WorkflowOrchestrator()
+        orchestrator.initialize()
+        
+        # Verify vector store was built
+        mock_kb_instance.get_all_patterns.assert_called_once()
+        mock_em_instance.encode_batch.assert_called_once()
+        mock_vs_instance.add_embeddings.assert_called_once()
+    
+    @patch('api.orchestrator.BinaryAnalyzerAgent', Mock())
+    @patch('api.orchestrator.SmartContractAgent', Mock())
+    @patch('api.orchestrator.config')
+    @patch('api.orchestrator.create_workflow')
+    @patch('api.orchestrator.ScannerAgent')
+    @patch('api.orchestrator.KnowledgeBase')
+    @patch('api.orchestrator.EmbeddingModel')
+    @patch('api.orchestrator.VectorStore')
+    def test_vector_store_not_built_when_populated(
+        self,
+        mock_vector_store,
+        mock_embedding_model,
+        mock_knowledge_base,
+        mock_scanner,
+        mock_create_workflow,
+        mock_config
+    ):
+        """
+        Test vector store is not rebuilt when already populated.
+        
+        Validates: Requirements 10.1
+        """
+        # Configure mock config
+        mock_config.enable_semantic_scanning = True
+        mock_config.knowledge_base_path = "data/knowledge_base/samples.csv"
+        
+        # Setup mocks
+        mock_kb_instance = Mock()
+        mock_kb_instance.patterns = {"1": Mock()}
+        mock_knowledge_base.return_value = mock_kb_instance
+        
+        mock_em_instance = Mock()
+        mock_embedding_model.return_value = mock_em_instance
+        
+        mock_vs_instance = Mock()
+        mock_vs_stats = Mock()
+        mock_vs_stats.document_count = 10  # Already populated
+        mock_vs_instance.get_stats.return_value = mock_vs_stats
+        mock_vector_store.return_value = mock_vs_instance
+        
+        mock_workflow = Mock()
+        mock_create_workflow.return_value = mock_workflow
+        
+        # Initialize orchestrator
+        orchestrator = WorkflowOrchestrator()
+        orchestrator.initialize()
+        
+        # Verify vector store was NOT built
+        mock_kb_instance.get_all_patterns.assert_not_called()
+        mock_em_instance.encode_batch.assert_not_called()
+        mock_vs_instance.add_embeddings.assert_not_called()
+
+
+class TestOrchestratorSemanticConfiguration:
+    """Test semantic configuration handling."""
+    
+    @patch('api.orchestrator.BinaryAnalyzerAgent', Mock())
+    @patch('api.orchestrator.SmartContractAgent', Mock())
+    @patch('api.orchestrator.config')
+    @patch('api.orchestrator.create_workflow')
+    @patch('api.orchestrator.ScannerAgent')
+    @patch('api.orchestrator.ValidatorSuite')
+    def test_validator_suite_respects_feature_flags(
+        self,
+        mock_validator_suite,
+        mock_scanner,
+        mock_create_workflow,
+        mock_config
+    ):
+        """
+        Test validator suite respects feature flags.
+        
+        Validates: Requirements 9.3, 9.4
+        """
+        # Configure mock config with specific feature flags
+        mock_config.enable_semantic_scanning = True
+        mock_config.enable_hardware_validation = False
+        mock_config.enable_lifecycle_validation = True
+        mock_config.enable_api_typo_detection = False
+        mock_config.knowledge_base_path = "data/knowledge_base/samples.csv"
+        mock_config.vector_store_path = "data/vector_store"
+        
+        # Setup mocks
+        mock_workflow = Mock()
+        mock_create_workflow.return_value = mock_workflow
+        
+        # Mock semantic components to avoid full initialization
+        with patch('api.orchestrator.KnowledgeBase'), \
+             patch('api.orchestrator.EmbeddingModel'), \
+             patch('api.orchestrator.VectorStore') as mock_vs, \
+             patch('api.orchestrator.SemanticScanner'):
+            
+            mock_vs_instance = Mock()
+            mock_vs_stats = Mock()
+            mock_vs_stats.document_count = 10
+            mock_vs_instance.get_stats.return_value = mock_vs_stats
+            mock_vs.return_value = mock_vs_instance
+            
+            # Initialize orchestrator
+            orchestrator = WorkflowOrchestrator()
+            orchestrator.initialize()
+            
+            # Verify validator suite was called with correct flags
+            mock_validator_suite.assert_called_once()
+            call_kwargs = mock_validator_suite.call_args[1]
+            assert call_kwargs['enable_hardware'] is False
+            assert call_kwargs['enable_lifecycle'] is True
+            assert call_kwargs['enable_api_typo'] is False

@@ -25,14 +25,14 @@ class NeuroSlicingEngine:
     
     def __init__(self, model_name: str = "deepseek-coder-v2-lite-instruct", use_4bit: bool = True, use_ollama: bool = True):
         """Initialize with DeepSeek model (Ollama or Transformers)."""
-        print(f"🔧 Initializing Neuro-Slicing Engine...")
+        print(f" Initializing Neuro-Slicing Engine...")
         
         self.use_ollama = use_ollama
         self.model_name = model_name
         
         if self.use_ollama:
             self.api_url = os.environ.get("OLLAMA_API", "http://localhost:11434/api/generate")
-            print(f"🔧 Using Ollama backend: {self.model_name}")
+            print(f" Using Ollama backend: {self.model_name}")
         else:
             self.tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
             
@@ -57,7 +57,7 @@ class NeuroSlicingEngine:
                     trust_remote_code=True,
                     torch_dtype=torch.float16,
                 )
-            print(f"✅ Model loaded (Transformers)")
+            print(f" Model loaded (Transformers)")
         
         # Initialize CrossHair verifier
         self.verifier = CrossHairVerifier(timeout=30)
@@ -217,41 +217,41 @@ Fixed Code:"""
         print(f"{'='*70}\n")
         
         # Step 1: Extract vulnerability slice
-        print("📍 Step 1: LLM-Guided Code Slicing...")
+        print(" Step 1: LLM-Guided Code Slicing...")
         code_slice = self.extract_vulnerability_slice(full_code, vulnerability_type)
-        print(f"✅ Extracted slice ({len(code_slice)} chars, reduced from {len(full_code)} chars)")
+        print(f" Extracted slice ({len(code_slice)} chars, reduced from {len(full_code)} chars)")
         print(f"\nCode Slice:\n{code_slice}\n")
         
         # Step 2: Generate security contract
-        print("📍 Step 2: LLM Contract Generation...")
+        print(" Step 2: LLM Contract Generation...")
         contract = self.generate_security_contract(code_slice, vulnerability_type)
-        print(f"✅ Generated contract")
+        print(f" Generated contract")
         print(f"\nContract:\n{contract}\n")
         
         # Step 3: Verify with CrossHair
-        print("📍 Step 3: Symbolic Execution (Pre-Patch)...")
+        print(" Step 3: Symbolic Execution (Pre-Patch)...")
         pre_patch_result = self.verifier.verify_code_with_contract(code_slice, contract)
-        print(f"✅ Verification complete ({pre_patch_result.execution_time:.2f}s)")
+        print(f" Verification complete ({pre_patch_result.execution_time:.2f}s)")
         
         if not pre_patch_result.verified and pre_patch_result.counterexample:
-            print(f"\n⚠️  VULNERABILITY CONFIRMED!")
+            print(f"\n  VULNERABILITY CONFIRMED!")
             print(f"Counterexample:\n{pre_patch_result.counterexample}\n")
             
             # Step 4: Generate patch
-            print("📍 Step 4: LLM Patch Generation...")
+            print(" Step 4: LLM Patch Generation...")
             patched_code = self.generate_patch(code_slice, pre_patch_result.counterexample, vulnerability_type)
-            print(f"✅ Patch generated")
+            print(f" Patch generated")
             print(f"\nPatched Code:\n{patched_code}\n")
             
             # Step 5: Verify patch
-            print("📍 Step 5: Symbolic Execution (Post-Patch)...")
+            print(" Step 5: Symbolic Execution (Post-Patch)...")
             post_patch_result = self.verifier.verify_code_with_contract(patched_code, contract)
-            print(f"✅ Verification complete ({post_patch_result.execution_time:.2f}s)")
+            print(f" Verification complete ({post_patch_result.execution_time:.2f}s)")
             
             if post_patch_result.verified:
-                print(f"\n✅ PATCH VERIFIED! Vulnerability eliminated.")
+                print(f"\n PATCH VERIFIED! Vulnerability eliminated.")
             else:
-                print(f"\n⚠️  Patch verification failed. Iterative refinement needed.")
+                print(f"\n  Patch verification failed. Iterative refinement needed.")
             
             return {
                 "vulnerable": True,
@@ -263,7 +263,7 @@ Fixed Code:"""
                 "total_time": pre_patch_result.execution_time + post_patch_result.execution_time
             }
         else:
-            print(f"\n✅ No vulnerability detected (or verification error)")
+            print(f"\n No vulnerability detected (or verification error)")
             return {
                 "vulnerable": False,
                 "code_slice": code_slice,
@@ -323,7 +323,7 @@ def create_user(username, email, password):
     conn.commit()
     conn.close()
 '''
-        print("📝 Using default example (Flask SQL injection vulnerability)")
+        print(" Using default example (Flask SQL injection vulnerability)")
     
     print("\n" + "="*70)
     print("FULL CODE:")

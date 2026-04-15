@@ -16,19 +16,19 @@ NC='\033[0m' # No Color
 
 # Check if Docker is installed
 if ! command -v docker &> /dev/null; then
-    echo -e "${RED}❌ Docker is not installed${NC}"
+    echo -e "${RED} Docker is not installed${NC}"
     echo "Please install Docker Desktop from: https://www.docker.com/products/docker-desktop"
     exit 1
 fi
 
 # Check if Docker is running
 if ! docker info &> /dev/null; then
-    echo -e "${RED}❌ Docker is not running${NC}"
+    echo -e "${RED} Docker is not running${NC}"
     echo "Please start Docker Desktop and try again"
     exit 1
 fi
 
-echo -e "${GREEN}✅ Docker is installed and running${NC}"
+echo -e "${GREEN} Docker is installed and running${NC}"
 echo ""
 
 # Navigate to deployment directory
@@ -40,12 +40,12 @@ cd "$DEPLOYMENT_DIR"
 
 # Check if .env file exists
 if [ ! -f ".env" ]; then
-    echo -e "${YELLOW}⚠️  .env file not found${NC}"
+    echo -e "${YELLOW}  .env file not found${NC}"
     echo "Creating .env from .env.example..."
     cp .env.example .env
-    echo -e "${GREEN}✅ Created .env file${NC}"
+    echo -e "${GREEN} Created .env file${NC}"
     echo ""
-    echo -e "${YELLOW}⚠️  Please edit deployment/.env and configure:${NC}"
+    echo -e "${YELLOW}  Please edit deployment/.env and configure:${NC}"
     echo "   1. Choose LLM backend (gemini or local)"
     echo "   2. Add GEMINI_API_KEY if using Gemini"
     echo ""
@@ -53,12 +53,12 @@ if [ ! -f ".env" ]; then
     exit 0
 fi
 
-echo -e "${GREEN}✅ .env file found${NC}"
+echo -e "${GREEN} .env file found${NC}"
 echo ""
 
 # Check if docker-compose.yml exists
 if [ ! -f "docker-compose.yml" ]; then
-    echo -e "${RED}❌ docker-compose.yml not found${NC}"
+    echo -e "${RED} docker-compose.yml not found${NC}"
     exit 1
 fi
 
@@ -82,7 +82,7 @@ MAX_RETRIES=12
 RETRY_COUNT=0
 while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
     if curl -s http://localhost:8000/health > /dev/null 2>&1; then
-        echo -e "${GREEN}✅ Service is healthy!${NC}"
+        echo -e "${GREEN} Service is healthy!${NC}"
         break
     fi
     RETRY_COUNT=$((RETRY_COUNT + 1))
@@ -91,7 +91,7 @@ while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
 done
 
 if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
-    echo -e "${RED}❌ Service failed to start${NC}"
+    echo -e "${RED} Service failed to start${NC}"
     echo ""
     echo "Check logs with: docker-compose logs"
     exit 1
@@ -99,7 +99,7 @@ fi
 
 echo ""
 echo "=========================================="
-echo -e "${GREEN}✅ SecureCodeAI is running!${NC}"
+echo -e "${GREEN} SecureCodeAI is running!${NC}"
 echo "=========================================="
 echo ""
 echo "API Endpoints:"

@@ -79,7 +79,7 @@ def benchmark_scanner_performance():
             'vulnerabilities_found': len(result_state.get('vulnerabilities', []))
         })
         
-        status = "✓ PASS" if avg_time < 10.0 else "✗ FAIL"
+        status = " PASS" if avg_time < 10.0 else " FAIL"
         print(f"\nFile size: {size} lines")
         print(f"  Average time: {avg_time:.3f}s {status}")
         print(f"  Min time: {min_time:.3f}s")
@@ -180,7 +180,7 @@ def process_results(results):
             'patch_generated': 'current_patch' in result_state
         })
         
-        status = "✓ PASS" if avg_time < 5.0 else "✗ FAIL"
+        status = " PASS" if avg_time < 5.0 else " FAIL"
         print(f"\nTest case: {test_case['name']}")
         print(f"  Average time: {avg_time:.3f}s {status}")
         print(f"  Min time: {min_time:.3f}s")
@@ -312,7 +312,7 @@ def main():
     print(f"  Max time (largest file): {max(scanner_times):.3f}s")
     print(f"  Requirement: < 10s for files under 1000 lines")
     scanner_pass = all(t < 10.0 for t in scanner_times[:3])  # First 3 are under 1000 lines
-    print(f"  Status: {'✓ PASS' if scanner_pass else '✗ FAIL'}")
+    print(f"  Status: {' PASS' if scanner_pass else ' FAIL'}")
     
     # Patcher summary
     patcher_times = [r['avg_time_seconds'] for r in all_results['patcher']]
@@ -321,7 +321,7 @@ def main():
     print(f"  Max time: {max(patcher_times):.3f}s")
     print(f"  Requirement: < 5s per patch")
     patcher_pass = all(t < 5.0 for t in patcher_times)
-    print(f"  Status: {'✓ PASS' if patcher_pass else '✗ FAIL'}")
+    print(f"  Status: {' PASS' if patcher_pass else ' FAIL'}")
     
     # Overall
     print(f"\nOverall Performance:")

@@ -20,7 +20,11 @@ from .models import (
     AnalyzeResponse,
     HealthResponse,
     ReadinessResponse,
-    ErrorResponse
+    ErrorResponse,
+    SearchSimilarRequest,
+    SearchSimilarResponse,
+    SimilarPatternResponse,
+    KnowledgeBaseStatsResponse
 )
 from .config import config
 from .vllm_client import get_vllm_client, initialize_vllm
@@ -58,10 +62,7 @@ async def lifespan(app: FastAPI):
     # Startup
     configure_logging()
     logger.info(f"Starting SecureCodeAI API Server v{app.version}")
-    safe_config = config.model_dump()
-    if safe_config.get("gemini_api_key"):
-        safe_config["gemini_api_key"] = "***redacted***"
-    logger.info(f"Configuration: {safe_config}")
+    logger.info(f"Configuration: {config.model_dump()}")
     
     # Setup signal handlers for graceful shutdown
     def shutdown_callback():
@@ -164,19 +165,10 @@ Powered by DeepSeek-Coder-V2-Lite-Instruct (16B parameters) served via vLLM for 
 )
 
 # Add CORS middleware
-cors_allowed_origins = [
-    origin.strip()
-    for origin in config.cors_allowed_origins.split(",")
-    if origin.strip()
-]
-if not cors_allowed_origins:
-    cors_allowed_origins = ["http://localhost:3000"]
-allow_all_origins = "*" in cors_allowed_origins
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"] if allow_all_origins else cors_allowed_origins,
-    allow_credentials=not allow_all_origins,
+    allow_origins=["*"],  # Configure appropriately for production
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -432,6 +424,263 @@ async def analyze_code(request: Request, analyze_request: AnalyzeRequest):
     finally:
         service_state.request_queue_depth -= 1
         clear_request_context()
+
+
+@app.post(
+    "/search_similar",
+    response_model=SearchSimilarResponse,
+    tags=["Analysis"],
+    summary="Search for similar bug patterns",
+    description="Search the knowledge base for bug patterns similar to the provided query",
+    responses={
+        200: {
+            "description": "Search completed successfully",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "query": "SELECT * FROM users WHERE username='{}'",
+                        "similar_patterns": [
+                            {
+                                "pattern_id": "001",
+                                "explanation": "SQL injection vulnerability in string formatting",
+                                "context": "Using f-strings or % formatting with user input in SQL queries",
+                                "buggy_code": "query = f\"SELECT * FROM users WHERE id={user_id}\"",
+                                "correct_code": "query = \"SELECT * FROM users WHERE id=?\"\ncursor.execute(query, (user_id,))",
+                                "similarity_score": 0.92,
+                                "category": "sql_injection"
+                            }
+                        ],
+                        "count": 1
+                    }
+                }
+            }
+        },
+        400: {
+            "description": "Invalid request (empty query, invalid parameters)",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": "ValidationError",
+                        "detail": "Query cannot be empty or whitespace only",
+                        "request_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                        "timestamp": "2025-01-24T12:34:56.789Z"
+                    }
+                }
+            }
+        },
+        503: {
+            "description": "Service unavailable (semantic scanning not enabled)",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": "ServiceUnavailable",
+                        "detail": "Semantic scanning is not enabled",
+                        "request_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                        "timestamp": "2025-01-24T12:34:56.789Z"
+                    }
+                }
+            }
+        }
+    }
+)
+@limiter.limit(f"{config.rate_limit_requests}/minute")
+async def search_similar(request: Request, search_request: SearchSimilarRequest):
+    """
+    Search knowledge base for similar bug patterns.
+    
+    This endpoint allows direct querying of the bug pattern knowledge base
+    using semantic similarity search. Useful for:
+    - Finding similar vulnerabilities to a code snippet
+    - Exploring the knowledge base
+    - Getting fix suggestions for specific patterns
+    
+    Returns similar patterns ranked by similarity score.
+    """
+    request_id = str(uuid.uuid4())
+    
+    # Set request context for logging
+    set_request_context(
+        request_id=request_id,
+        query_length=len(search_request.query),
+        top_k=search_request.top_k
+    )
+    
+    logger.info(f"Starting similarity search", extra={
+        "request_id": request_id,
+        "query_length": len(search_request.query),
+        "top_k": search_request.top_k
+    })
+    
+    try:
+        # Check if orchestrator is ready
+        if not service_state.orchestrator:
+            logger.error("Workflow orchestrator not initialized", extra={"request_id": request_id})
+            raise HTTPException(
+                status_code=503,
+                detail="Workflow orchestrator not initialized"
+            )
+        
+        # Ensure orchestrator is initialized
+        if not service_state.orchestrator.is_initialized():
+            service_state.orchestrator.initialize()
+        
+        # Check if semantic scanning is enabled
+        if not service_state.orchestrator.semantic_scanner:
+            logger.error("Semantic scanning not enabled", extra={"request_id": request_id})
+            raise HTTPException(
+                status_code=503,
+                detail="Semantic scanning is not enabled"
+            )
+        
+        # Perform similarity search
+        similar_patterns = service_state.orchestrator.semantic_scanner.search_similar(
+            query=search_request.query,
+            top_k=search_request.top_k
+        )
+        
+        # Convert to response format
+        pattern_responses = [
+            SimilarPatternResponse(
+                pattern_id=pattern.pattern_id,
+                explanation=pattern.explanation,
+                context=pattern.context,
+                buggy_code=pattern.buggy_code,
+                correct_code=pattern.correct_code,
+                similarity_score=pattern.similarity_score,
+                category=pattern.category
+            )
+            for pattern in similar_patterns
+        ]
+        
+        response = SearchSimilarResponse(
+            query=search_request.query,
+            similar_patterns=pattern_responses,
+            count=len(pattern_responses)
+        )
+        
+        logger.info(f"Similarity search completed", extra={
+            "request_id": request_id,
+            "patterns_found": len(pattern_responses)
+        })
+        
+        return response
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Similarity search failed: {str(e)}", extra={
+            "request_id": request_id
+        }, exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Similarity search failed: {str(e)}"
+        )
+    
+    finally:
+        clear_request_context()
+
+
+@app.get(
+    "/knowledge_base/stats",
+    response_model=KnowledgeBaseStatsResponse,
+    tags=["Analysis"],
+    summary="Get knowledge base statistics",
+    description="Get statistics about the bug pattern knowledge base",
+    responses={
+        200: {
+            "description": "Statistics retrieved successfully",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "pattern_count": 150,
+                        "categories": {
+                            "sql_injection": 25,
+                            "xss": 30,
+                            "buffer_overflow": 20,
+                            "general": 75
+                        },
+                        "last_updated": "2025-01-24T10:30:00.000Z"
+                    }
+                }
+            }
+        },
+        503: {
+            "description": "Service unavailable (semantic scanning not enabled)",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": "ServiceUnavailable",
+                        "detail": "Semantic scanning is not enabled",
+                        "request_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                        "timestamp": "2025-01-24T12:34:56.789Z"
+                    }
+                }
+            }
+        }
+    }
+)
+async def get_knowledge_base_stats():
+    """
+    Get statistics about the knowledge base.
+    
+    Returns:
+    - pattern_count: Total number of bug patterns
+    - categories: Pattern count by category
+    - last_updated: Last update timestamp
+    """
+    request_id = str(uuid.uuid4())
+    
+    logger.info(f"Retrieving knowledge base statistics", extra={
+        "request_id": request_id
+    })
+    
+    try:
+        # Check if orchestrator is ready
+        if not service_state.orchestrator:
+            logger.error("Workflow orchestrator not initialized", extra={"request_id": request_id})
+            raise HTTPException(
+                status_code=503,
+                detail="Workflow orchestrator not initialized"
+            )
+        
+        # Ensure orchestrator is initialized
+        if not service_state.orchestrator.is_initialized():
+            service_state.orchestrator.initialize()
+        
+        # Check if semantic scanning is enabled
+        if not service_state.orchestrator.semantic_scanner:
+            logger.error("Semantic scanning not enabled", extra={"request_id": request_id})
+            raise HTTPException(
+                status_code=503,
+                detail="Semantic scanning is not enabled"
+            )
+        
+        # Get knowledge base stats
+        kb_stats = service_state.orchestrator.semantic_scanner.knowledge_base.get_stats()
+        
+        response = KnowledgeBaseStatsResponse(
+            pattern_count=kb_stats.pattern_count,
+            categories=kb_stats.categories,
+            last_updated=kb_stats.last_updated
+        )
+        
+        logger.info(f"Knowledge base statistics retrieved", extra={
+            "request_id": request_id,
+            "pattern_count": kb_stats.pattern_count
+        })
+        
+        return response
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to retrieve knowledge base statistics: {str(e)}", extra={
+            "request_id": request_id
+        }, exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to retrieve knowledge base statistics: {str(e)}"
+        )
 
 
 @app.get(

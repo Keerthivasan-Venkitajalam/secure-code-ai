@@ -20,6 +20,63 @@ class Vulnerability:
 
 
 @dataclass
+class SemanticVulnerability:
+    """Represents a vulnerability detected via semantic similarity."""
+    location: str  # Line number or range
+    vuln_type: str  # Type of vulnerability
+    description: str  # Human-readable description
+    similar_pattern_id: str  # ID of matching pattern
+    similarity_score: float  # Similarity score (0-1)
+    suggested_fix: str  # Suggested fix from pattern
+    severity: str  # high, medium, low
+    confidence: float  # Confidence score (0-1)
+    source: str = "semantic_scanner"  # Source of detection
+
+
+@dataclass
+class SimilarPattern:
+    """Represents a similar bug pattern from knowledge base."""
+    pattern_id: str  # Unique pattern ID
+    explanation: str  # What the bug is
+    context: str  # Additional context
+    buggy_code: str  # Example of buggy code
+    correct_code: str  # Example of correct code
+    similarity_score: float  # Similarity to query (0-1)
+    category: str  # Bug category
+
+
+@dataclass
+class HardwareViolation:
+    """Represents a hardware constraint violation."""
+    location: str  # Line number
+    rule: str  # Rule violated (e.g., "voltage_limit")
+    actual_value: Any  # Actual value found
+    expected_value: Any  # Expected value/range
+    severity: str  # high, medium, low
+    message: str  # Human-readable message
+
+
+@dataclass
+class LifecycleViolation:
+    """Represents a lifecycle ordering violation."""
+    location: str  # Line number
+    issue: str  # Type of issue (e.g., "missing_end", "wrong_order")
+    begin_line: int  # Line with RDI_BEGIN
+    end_line: int  # Line with RDI_END (if present)
+    message: str  # Human-readable message
+
+
+@dataclass
+class APITypoSuggestion:
+    """Represents an API typo suggestion."""
+    location: str  # Line number
+    found_api: str  # API name found in code
+    suggested_apis: List[str]  # Suggested correct API names
+    similarity_scores: List[float]  # Similarity scores for each suggestion
+    message: str  # Human-readable message
+
+
+@dataclass
 class Contract:
     """Formal specification for symbolic execution."""
     code: str  # icontract decorator code
@@ -69,6 +126,15 @@ class AgentState(TypedDict, total=False):
     # Patcher Agent output
     patches: List[Patch]
     current_patch: Optional[Patch]
+    
+    # Semantic Scanner output (new)
+    semantic_vulnerabilities: List[SemanticVulnerability]  # Semantic analysis results
+    similar_patterns: List[SimilarPattern]  # Similar patterns from knowledge base
+    
+    # Validator Suite output (new)
+    hardware_violations: List[HardwareViolation]  # Hardware constraint violations
+    lifecycle_violations: List[LifecycleViolation]  # Lifecycle ordering violations
+    api_typo_suggestions: List[APITypoSuggestion]  # API typo suggestions
     
     # Control flow
     iteration_count: int  # Number of patch attempts

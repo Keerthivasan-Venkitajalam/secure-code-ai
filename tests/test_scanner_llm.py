@@ -19,7 +19,7 @@ def mock_llm_client():
     mock_client = Mock(spec=LLMClient)
     hypothesis_response = """**Security Property:** Input validation
 **Attack Vector:** SQL injection via string concatenation
-**Data Flow:** user_input → query string → execute()
+**Data Flow:** user_input  query string  execute()
 **Impact:** Unauthorized database access"""
     
     # Mock both generate and generate_with_self_correction
@@ -317,7 +317,7 @@ def test_property_hypothesis_generation_completeness(vuln_type, line_num):
     mock_client = Mock(spec=LLMClient)
     mock_client.generate.return_value = """**Security Property:** Input validation
 **Attack Vector:** SQL injection
-**Data Flow:** user_input → query
+**Data Flow:** user_input  query
 **Impact:** Data breach"""
     
     scanner = ScannerAgent(llm_client=mock_client)

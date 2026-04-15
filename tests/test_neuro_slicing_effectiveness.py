@@ -230,7 +230,7 @@ def authenticate_user(username: str, password: str) -> bool:
             assert slice_lines < full_lines, "Slice should be smaller than full code"
             assert reduction_percent > 30, f"Should reduce code by at least 30% (got {reduction_percent:.1f}%)"
         else:
-            print("\n✓ Scanner executed (code slice not generated, LLM may not be configured)")
+            print("\n Scanner executed (code slice not generated, LLM may not be configured)")
     
     def test_slice_is_syntactically_valid(self):
         """
@@ -303,11 +303,11 @@ def vulnerable_func(user_input):
             # Try to parse the slice
             try:
                 ast.parse(code_slice)
-                print("\n✓ Code slice is syntactically valid Python")
+                print("\n Code slice is syntactically valid Python")
             except SyntaxError as e:
                 pytest.fail(f"Code slice has syntax error: {e}")
         else:
-            print("\n✓ Scanner executed (code slice not generated)")
+            print("\n Scanner executed (code slice not generated)")
     
     def test_slice_contains_vulnerable_function(self):
         """
@@ -390,9 +390,9 @@ def authenticate_user(username: str, password: str) -> bool:
             # Check for vulnerable pattern
             assert "f\"" in code_slice or "f'" in code_slice, "Slice should contain f-string vulnerability"
             
-            print("\n✓ Code slice contains vulnerable function")
+            print("\n Code slice contains vulnerable function")
         else:
-            print("\n✓ Scanner executed (code slice not generated)")
+            print("\n Scanner executed (code slice not generated)")
     
     def test_slice_includes_mocks_for_dependencies(self):
         """
@@ -478,11 +478,11 @@ def vulnerable_func(user_input):
             has_mocks = any(keyword in code_slice for keyword in ["Mock", "mock", "class", "def"])
             
             if has_mocks:
-                print("\n✓ Code slice includes mocks for dependencies")
+                print("\n Code slice includes mocks for dependencies")
             else:
-                print("\n⚠ Code slice may not include mocks (implementation-dependent)")
+                print("\n Code slice may not include mocks (implementation-dependent)")
         else:
-            print("\n✓ Scanner executed (code slice not generated)")
+            print("\n Scanner executed (code slice not generated)")
     
     def test_slicing_performance_improvement(self):
         """
@@ -513,7 +513,7 @@ def vulnerable_func(user_input):
         # Verify at least 50% improvement
         assert time_reduction >= 50, f"Should reduce verification time by at least 50% (got {time_reduction:.1f}%)"
         
-        print(f"✓ Slicing reduces verification time by {time_reduction:.1f}%")
+        print(f" Slicing reduces verification time by {time_reduction:.1f}%")
 
 
 class TestNeuroSlicingIntegration:
@@ -523,7 +523,7 @@ class TestNeuroSlicingIntegration:
         """
         Test that sliced code can be verified by SymBot.
         
-        Validates end-to-end slicing → verification workflow.
+        Validates end-to-end slicing  verification workflow.
         """
         # Create mock LLM client
         mock_llm = Mock(spec=LLMClient)
@@ -586,11 +586,11 @@ def vulnerable_func(user_input: str) -> str:
             # Verify slice is executable (can be parsed)
             try:
                 ast.parse(code_slice)
-                print("\n✓ Code slice is executable and can be verified by SymBot")
+                print("\n Code slice is executable and can be verified by SymBot")
             except SyntaxError as e:
                 pytest.fail(f"Code slice is not executable: {e}")
         else:
-            print("\n✓ Scanner executed (code slice not generated)")
+            print("\n Scanner executed (code slice not generated)")
 
 
 if __name__ == "__main__":

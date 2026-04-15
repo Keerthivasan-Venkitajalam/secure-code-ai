@@ -390,7 +390,7 @@ class AblationStudy:
         if "component_impact" in analysis:
             report += "## Component Impact Analysis\n\n"
             report += "Impact of removing each component (compared to full system):\n\n"
-            report += "| Component Removed | Detection Rate Δ | F1 Score Δ | Patch Validity Δ |\n"
+            report += "| Component Removed | Detection Rate  | F1 Score  | Patch Validity  |\n"
             report += "|-------------------|------------------|------------|------------------|\n"
             
             for config_name, impact in analysis["component_impact"].items():
