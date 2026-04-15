@@ -38,7 +38,7 @@ chmod +x scripts/start_local.sh
 ./scripts/start_local.sh
 ```
 
-Wait for: `✅ SecureCodeAI is running!`
+Wait for: ` SecureCodeAI is running!`
 
 ### 4. Launch Extension Development Host
 
@@ -354,11 +354,11 @@ See `../deployment/LOCAL_SETUP_GUIDE.md` for marketplace publication details.
 
 ## Next Steps
 
-1. ✅ Get backend running locally
-2. ✅ Install extension dependencies
-3. ✅ Launch Extension Development Host
-4. ✅ Test with sample vulnerabilities
-5. 🚀 Start developing new features!
+1.  Get backend running locally
+2.  Install extension dependencies
+3.  Launch Extension Development Host
+4.  Test with sample vulnerabilities
+5.  Start developing new features!
 
 ## Support
 
@@ -370,9 +370,9 @@ See `../deployment/LOCAL_SETUP_GUIDE.md` for marketplace publication details.
 
 You now have a complete local development environment:
 
-- ✅ Backend running in Docker
-- ✅ Extension in development mode
-- ✅ Hot reload for TypeScript changes
-- ✅ Full debugging support
+-  Backend running in Docker
+-  Extension in development mode
+-  Hot reload for TypeScript changes
+-  Full debugging support
 
-Happy coding! 🎉
+Happy coding! 
