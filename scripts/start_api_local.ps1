@@ -55,13 +55,30 @@ if (-not (Test-Path "deployment/.env")) {
     Write-Host ""
     Write-Host "Important: Set these in deployment/.env:" -ForegroundColor Yellow
     Write-Host "  - LLM_BACKEND=gemini" -ForegroundColor Yellow
-    Write-Host "  - GOOGLE_APPLICATION_CREDENTIALS=deployment/secrets/inquinion-code-801c22313fa5.json" -ForegroundColor Yellow
+    Write-Host "  - GOOGLE_APPLICATION_CREDENTIALS=deployment/secrets/gcp-service-account.json" -ForegroundColor Yellow
     Write-Host ""
     Read-Host "Press Enter after editing .env file"
 }
 
 # Check Google Cloud credentials
-$credsPath = "deployment/secrets/inquinion-code-801c22313fa5.json"
+$credsPath = "deployment/secrets/gcp-service-account.json"
+if (Test-Path "deployment/.env") {
+    $credentialsLine = Get-Content "deployment/.env" |
+        Where-Object { $_ -match '^\s*GOOGLE_APPLICATION_CREDENTIALS\s*=' } |
+        Select-Object -First 1
+
+    if ($credentialsLine) {
+        $configuredPath = ($credentialsLine -split '=', 2)[1].Trim()
+        if ($configuredPath) {
+            $credsPath = $configuredPath
+        }
+    }
+}
+
+if ($credsPath.StartsWith("/app/secrets/")) {
+    $credsPath = Join-Path "deployment/secrets" (Split-Path $credsPath -Leaf)
+}
+
 if (Test-Path $credsPath) {
     Write-Host "✅ Google Cloud credentials found" -ForegroundColor Green
     $env:GOOGLE_APPLICATION_CREDENTIALS = $credsPath
