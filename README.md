@@ -30,6 +30,7 @@ Stop manually hunting security issues. Submit code, get prioritized vulnerabilit
 - [Security](#security)
 - [Project Structure](#project-structure)
 - [Troubleshooting](#troubleshooting)
+- [Developers](#developers)
 - [Contributing](#contributing)
 - [Reference Docs](#reference-docs)
 
@@ -340,6 +341,16 @@ secure-code-ai/
 | 429 rate limit errors | Increase `SECUREAI_RATE_LIMIT_REQUESTS` for trusted clients |
 | Missing dependencies | Re-run `pip install -r requirements.txt` |
 | Extension cannot connect | Verify `securecodai.apiEndpoint` and API health |
+
+---
+
+## Developers
+
+1. Ansh Raj Rath - [@AnshRajRath](https://github.com/AnshRajRath)
+2. Aditya Krishna Samant - [@Supersamant23](https://github.com/Supersamant23)
+3. Keerthivasan S V - [Keerthivasan-Venkitajalam](https://github.com/Keerthivasan-Venkitajalam)
+4. Krish S - [@krish-subramoniam](https://github.com/krish-subramoniam)
+5. Tamarana Rohith Balaji - [@T-ROHITH-BALAJI](https://github.com/T-ROHITH-BALAJI)
 
 ---
 
