@@ -138,7 +138,7 @@ Search for "SecureCodeAI" in the VS Code Extensions Marketplace.
 ### Analyze Current File
 
 **Method 1: Status Bar**
-- Click the shield icon (🛡️) in the bottom-right corner
+- Click the shield icon () in the bottom-right corner
 
 **Method 2: Command Palette**
 - Press `Ctrl+Shift+P`
@@ -163,7 +163,7 @@ This will scan all `.py` files in your workspace.
 When a vulnerability is detected:
 
 1. **Hover** over the red squiggly line to see details
-2. **Click** the 💡 (Quick Fix) icon or press `Ctrl+.`
+2. **Click** the  (Quick Fix) icon or press `Ctrl+.`
 3. **Select** "Apply SecureCodeAI Patch (Verified)"
 4. **Review** the changes (optional: use "Show Diff")
 5. **Apply** - the patch is automatically applied and saved
@@ -172,7 +172,7 @@ When a vulnerability is detected:
 
 Before applying a patch:
 
-1. Click 💡 (Quick Fix)
+1. Click  (Quick Fix)
 2. Select "Show SecureCodeAI Patch Diff"
 3. Review side-by-side comparison
 4. Close diff and apply if satisfied
@@ -406,7 +406,7 @@ vsce publish major  # 0.1.0 → 1.0.0
 
 ## Contributing
 
-Contributions welcome! See [CONTRIBUTING.md](../CONTRIBUTING.md).
+Contributions welcome! See [README.md](README.md#contributing).
 
 ## License
 
@@ -420,4 +420,4 @@ MIT License - see [LICENSE](../LICENSE).
 
 ---
 
-**Built with ❤️ for secure software development**
+Built for secure software development.
