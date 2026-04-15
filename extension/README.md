@@ -62,7 +62,7 @@ Search for "SecureCodeAI" in the VS Code Extensions Marketplace.
 When vulnerabilities are detected:
 
 1. Hover over the red squiggly line
-2. Click "Quick Fix" (💡 icon) or press `Ctrl+.`
+2. Click "Quick Fix" ( icon) or press `Ctrl+.`
 3. Select "Apply SecureCodeAI Patch"
 4. The verified patch will be applied automatically
 
@@ -139,7 +139,7 @@ This creates a `.vsix` file you can install locally.
 
 ## Contributing
 
-Contributions are welcome! Please see [CONTRIBUTING.md](../CONTRIBUTING.md).
+Contributions are welcome! Please see [README.md](../README.md#contributing).
 
 ## License
 
@@ -159,4 +159,4 @@ MIT License - see [LICENSE](../LICENSE) for details.
 
 ---
 
-**Built with ❤️ for secure software development**
+Built for secure software development.
