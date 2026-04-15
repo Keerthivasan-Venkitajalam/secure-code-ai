@@ -7,9 +7,13 @@ This package contains:
 - VectorStore: Stores and searches embeddings
 """
 
+from typing import TYPE_CHECKING
+
 from .knowledge_base import KnowledgeBase, BugPattern, KnowledgeBaseStats
-from .embedding_model import EmbeddingModel
-from .vector_store import VectorStore, SearchResult, VectorStoreStats
+
+if TYPE_CHECKING:
+    from .embedding_model import EmbeddingModel
+    from .vector_store import VectorStore, SearchResult, VectorStoreStats
 
 __all__ = [
     "KnowledgeBase",
@@ -20,4 +24,19 @@ __all__ = [
     "SearchResult",
     "VectorStoreStats",
 ]
+
+
+def __getattr__(name):
+    """Lazily resolve optional heavy modules to avoid import-time dependency errors."""
+    if name == "EmbeddingModel":
+        from .embedding_model import EmbeddingModel
+        return EmbeddingModel
+    if name in {"VectorStore", "SearchResult", "VectorStoreStats"}:
+        from .vector_store import VectorStore, SearchResult, VectorStoreStats
+        return {
+            "VectorStore": VectorStore,
+            "SearchResult": SearchResult,
+            "VectorStoreStats": VectorStoreStats,
+        }[name]
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
