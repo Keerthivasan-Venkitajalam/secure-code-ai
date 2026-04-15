@@ -11,6 +11,37 @@
 
 An intelligent security analysis system combining Large Language Models with symbolic execution for automated vulnerability detection and patching in source code.
 
+## 🚀 Quick Start - Run Locally (No Cloud Required!)
+
+Get started in 10 minutes with zero cloud costs:
+
+```bash
+# 1. Get free Gemini API key from: https://makersuite.google.com/app/apikey
+
+# 2. Configure environment
+cd secure-code-ai/deployment
+cp .env.example .env
+# Edit .env and add: GEMINI_API_KEY=your_key_here
+
+# 3. Start backend (Windows)
+cd ..
+.\scripts\start_local.ps1
+
+# Or on Linux/Mac
+./scripts/start_local.sh
+
+# 4. Install VS Code extension
+cd extension
+npm install && npm run compile
+# Press F5 in VS Code to launch
+
+# 5. Test it!
+# Create test.py with vulnerable code and analyze it
+```
+
+**📖 Full Guide**: See [QUICKSTART_LOCAL.md](QUICKSTART_LOCAL.md) for detailed instructions.
+
+## Features
 [Quick Start](#-quick-start) • [Features](#-features) • [Architecture](#-architecture) • [API Documentation](#-api-reference) • [Deployment](#-deployment)
 
 </div>
@@ -162,6 +193,55 @@ sequenceDiagram
 
 ### Prerequisites
 
+- **Python 3.10+**
+- **16GB RAM minimum** (32GB recommended for local models)
+- **8GB RAM minimum** (when using Gemini API)
+- **GPU with 24GB VRAM** (optional, for local models)
+- **Docker** (recommended for easy setup)
+
+## Installation Options
+
+### Option 1: Local Docker Setup (Recommended) ⭐
+
+**Best for**: Development, testing, no cloud costs
+
+```bash
+# 1. Get free Gemini API key
+# Visit: https://makersuite.google.com/app/apikey
+
+# 2. Configure
+cd secure-code-ai/deployment
+cp .env.example .env
+# Edit .env: Add GEMINI_API_KEY=your_key
+
+# 3. Start (Windows)
+cd ..
+.\scripts\start_local.ps1
+
+# Or Linux/Mac
+./scripts/start_local.sh
+
+# 4. Verify
+curl http://localhost:8000/health
+```
+
+**📖 Full Guide**: [QUICKSTART_LOCAL.md](QUICKSTART_LOCAL.md)
+
+### Option 2: Cloud Deployment (RunPod)
+
+**Best for**: Production, team sharing, 24/7 availability
+
+```bash
+# See deployment guides:
+# - deployment/RUNPOD_ACCOUNT_SETUP.md
+# - deployment/RUNPOD_DEPLOYMENT.md
+```
+
+**Cost**: $12-40/month depending on usage
+
+### Option 3: Manual Python Setup
+
+**Best for**: Development without Docker
 - **Python**: 3.10 or higher
 - **RAM**: 8GB minimum (16GB recommended)
 - **Storage**: 20GB free space
@@ -184,6 +264,40 @@ cp deployment/.env.example .env
 cd deployment
 docker-compose up -d
 
+# Set up Gemini
+export GEMINI_API_KEY=your_key_here
+export LLM_BACKEND=gemini
+
+# Start server
+python -m api.server
+```
+
+## VS Code Extension Setup
+
+```bash
+cd secure-code-ai/extension
+npm install
+npm run compile
+
+# Option A: Development mode (F5 in VS Code)
+# Option B: Install as VSIX
+npm install -g @vscode/vsce
+vsce package
+code --install-extension securecodai-0.1.0.vsix
+```
+
+**Configure in VS Code Settings:**
+```json
+{
+  "securecodai.apiEndpoint": "http://localhost:8000"
+}
+```
+
+**📖 Extension Guide**: [extension/LOCAL_DEVELOPMENT.md](extension/LOCAL_DEVELOPMENT.md)
+
+## Using the API
+
+### Health Check
 # Or start manually
 pip install -r requirements.txt
 export SECUREAI_USE_GEMINI=true
@@ -283,8 +397,11 @@ code --install-extension securecodai-0.1.0.vsix
 Configure in VS Code settings:
 ```json
 {
+  "status": "healthy",
+  "timestamp": "2026-01-27T12:00:00Z"
   "securecodai.apiEndpoint": "http://localhost:8000"
 }
+```
 ```
 
 ---

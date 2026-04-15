@@ -3,6 +3,7 @@ SecureCodeAI - LangGraph Workflow
 Defines the 4-agent cyclic state machine for vulnerability detection and patching.
 """
 
+import os
 from typing import Dict, Any, Literal
 from langgraph.graph import StateGraph, END
 
@@ -11,8 +12,30 @@ from .nodes.scanner import ScannerAgent
 from .nodes.speculator import SpeculatorAgent
 from .nodes.symbot import SymBotAgent
 from .nodes.patcher import PatcherAgent
-from .nodes.binary_analyzer import BinaryAnalyzerAgent
-from .nodes.smart_contract import SmartContractAgent
+
+# Optional imports - may fail on Windows or when SKIP_ANGR is set
+SKIP_ANGR = os.getenv("SKIP_ANGR", "false").lower() == "true"
+
+if not SKIP_ANGR:
+    try:
+        from .nodes.binary_analyzer import BinaryAnalyzerAgent
+        BINARY_ANALYZER_AVAILABLE = True
+    except ImportError as e:
+        print(f"Warning: BinaryAnalyzerAgent not available: {e}")
+        BINARY_ANALYZER_AVAILABLE = False
+        BinaryAnalyzerAgent = None
+else:
+    print("Info: Skipping BinaryAnalyzerAgent (SKIP_ANGR=true)")
+    BINARY_ANALYZER_AVAILABLE = False
+    BinaryAnalyzerAgent = None
+
+try:
+    from .nodes.smart_contract import SmartContractAgent
+    SMART_CONTRACT_AVAILABLE = True
+except ImportError as e:
+    print(f"Warning: SmartContractAgent not available: {e}")
+    SMART_CONTRACT_AVAILABLE = False
+    SmartContractAgent = None
 
 
 def route_after_scan(state: AgentState) -> Literal["speculator", "end"]:

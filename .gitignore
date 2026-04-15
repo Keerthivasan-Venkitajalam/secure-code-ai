@@ -99,3 +99,8 @@ temp/
 
 # OS
 Thumbs.db
+
+# Google Cloud Credentials
+deployment/secrets/
+**/*-credentials.json
+**/*-service-account.json

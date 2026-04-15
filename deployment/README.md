@@ -2,6 +2,14 @@
 
 This directory contains Docker configuration and deployment scripts for SecureCodeAI.
 
+## Quick Links
+
+- **[RunPod Account Setup](RUNPOD_ACCOUNT_SETUP.md)** - Complete guide for Task 3.1
+- **[Setup Checklist](RUNPOD_SETUP_CHECKLIST.md)** - Track your setup progress
+- **[Cost Estimation](estimate_costs.py)** - Estimate monthly RunPod costs
+- **[Deployment Guide](RUNPOD_DEPLOYMENT.md)** - Deploy to RunPod (Task 3.2)
+- **[Docker Compose](DOCKER_COMPOSE.md)** - Local development setup
+
 ## Files
 
 - `Dockerfile` - Main application container with CPU/GPU support
@@ -9,6 +17,9 @@ This directory contains Docker configuration and deployment scripts for SecureCo
 - `docker-compose.yml` - Local development setup
 - `entrypoint.sh` - Container entrypoint with model download logic
 - `build.sh` - Build script with GPU support
+- `.env.example` - Environment variables template
+- `validate_runpod_setup.py` - Validate RunPod account setup
+- `estimate_costs.py` - Cost estimation tool
 - `README.md` - This file
 
 ## Building the Container
