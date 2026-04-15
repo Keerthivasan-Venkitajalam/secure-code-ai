@@ -170,7 +170,7 @@ if ($allPassed) {
     Write-Host "  3. Install dependencies: pip install -r requirements.txt" -ForegroundColor White
     Write-Host "  4. Check Google Cloud credentials are configured" -ForegroundColor White
     Write-Host ""
-    Write-Host "For more help, see: CONNECT_EXTENSION_LOCAL.md" -ForegroundColor Cyan
+    Write-Host "For more help, see: README.md and extension/README.md" -ForegroundColor Cyan
 }
 
 Write-Host ""
