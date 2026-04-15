@@ -103,8 +103,13 @@ class WorkflowOrchestrator:
             speculator = SpeculatorAgent(llm_client=self.llm_client)
             symbot = SymBotAgent()
             patcher = PatcherAgent(llm_client=self.llm_client)
-            binary_analyzer = BinaryAnalyzerAgent()
-            smart_contract_agent = SmartContractAgent()
+            binary_analyzer = BinaryAnalyzerAgent() if BinaryAnalyzerAgent is not None else None
+            smart_contract_agent = SmartContractAgent() if SmartContractAgent is not None else None
+
+            if binary_analyzer is None:
+                logger.info("BinaryAnalyzerAgent unavailable; binary analysis disabled")
+            if smart_contract_agent is None:
+                logger.info("SmartContractAgent unavailable; smart contract analysis disabled")
             
             logger.info("Agents initialized with LLM intelligence")
             
