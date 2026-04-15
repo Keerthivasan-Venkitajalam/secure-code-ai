@@ -8,8 +8,7 @@ import asyncio
 import time
 import uuid
 import logging
-from typing import Optional
-from datetime import datetime
+from typing import Optional, Any
 
 from agent.graph import create_workflow
 from agent.state import AgentState
@@ -17,13 +16,6 @@ from agent.nodes.scanner import ScannerAgent
 from agent.nodes.speculator import SpeculatorAgent
 from agent.nodes.symbot import SymBotAgent
 from agent.nodes.patcher import PatcherAgent
-
-# Semantic scanning components
-from agent.nodes.semantic_scanner import SemanticScanner
-from agent.validators.validator_suite import ValidatorSuite
-from agent.knowledge.knowledge_base import KnowledgeBase
-from agent.knowledge.embedding_model import EmbeddingModel
-from agent.knowledge.vector_store import VectorStore
 
 # Optional imports - may fail on Windows
 SKIP_ANGR = os.getenv("SKIP_ANGR", "false").lower() == "true"
@@ -50,6 +42,14 @@ from api.ollama_client import OllamaClient
 from api.config import config
 from .models import AnalyzeResponse, VulnerabilityResponse, PatchResponse
 
+# Lazy-resolved semantic symbols.
+# Kept at module scope so tests can patch these attributes.
+SemanticScanner = None
+ValidatorSuite = None
+KnowledgeBase = None
+EmbeddingModel = None
+VectorStore = None
+
 
 logger = logging.getLogger(__name__)
 
@@ -72,10 +72,12 @@ class WorkflowOrchestrator:
         self.llm_client = None  # Will be created during initialization
         self._workflow = None
         self._initialized = False
+        self.active_backend = "none"
+        self.backend_ready = False
         
         # Semantic scanning components
-        self.semantic_scanner: Optional[SemanticScanner] = None
-        self.validator_suite: Optional[ValidatorSuite] = None
+        self.semantic_scanner: Optional[Any] = None
+        self.validator_suite: Optional[Any] = None
     
     def initialize(self) -> None:
         """
@@ -89,8 +91,11 @@ class WorkflowOrchestrator:
         
         try:
             # Initialize LLM client - priority: Ollama > Gemini > Local GGUF > vLLM
+            self.active_backend = "none"
+            self.backend_ready = False
             try:
                 if config.use_ollama:
+                    self.active_backend = "ollama"
                     logger.info("Initializing Ollama Client...")
                     self.llm_client = OllamaClient(
                         model=config.ollama_model,
@@ -99,22 +104,28 @@ class WorkflowOrchestrator:
                     self.llm_client.initialize()
                     logger.info(f"Ollama client ready with model: {config.ollama_model}")
                 elif config.use_gemini:
+                    self.active_backend = "gemini"
                     logger.info("Initializing Gemini Cloud Client...")
                     self.llm_client = GeminiClient()
                     self.llm_client.initialize()
                 elif config.use_local_llm:
+                    self.active_backend = "local_llm"
                     logger.info("Initializing Local GGUF Client...")
                     self.llm_client = LlamaCppClient()
                     self.llm_client.initialize()
                 else:
+                    self.active_backend = "vllm"
                     logger.info("Initializing vLLM Client...")
                     self.llm_client = get_vllm_client()
                     if not self.llm_client.is_initialized():
                         self.llm_client.initialize()
+
+                self.backend_ready = self.llm_client is not None
             except Exception as e:
                 logger.warning(f"Failed to initialize LLM client: {e}")
                 logger.warning("Continuing without LLM intelligence (basic mode)")
                 self.llm_client = None
+                self.backend_ready = False
             
             # Initialize semantic components if enabled
             if config.enable_semantic_scanning:
@@ -144,7 +155,16 @@ class WorkflowOrchestrator:
             logger.info("Agents initialized with LLM intelligence")
             
             # Create workflow
-            self._workflow = create_workflow(scanner, speculator, symbot, patcher, binary_analyzer, smart_contract_agent)
+            self._workflow = create_workflow(
+                scanner,
+                speculator,
+                symbot,
+                patcher,
+                binary_analyzer,
+                smart_contract_agent,
+                semantic_scanner=self.semantic_scanner,
+                validator_suite=self.validator_suite,
+            )
             
             self._initialized = True
             logger.info("Workflow orchestrator initialized successfully")
@@ -174,6 +194,24 @@ class WorkflowOrchestrator:
         logger.info("Initializing semantic scanning components...")
         
         try:
+            # Lazy imports so missing semantic dependencies do not fail module import.
+            global SemanticScanner, ValidatorSuite, KnowledgeBase, EmbeddingModel, VectorStore
+            if SemanticScanner is None:
+                from agent.nodes.semantic_scanner import SemanticScanner as _SemanticScanner
+                SemanticScanner = _SemanticScanner
+            if ValidatorSuite is None:
+                from agent.validators.validator_suite import ValidatorSuite as _ValidatorSuite
+                ValidatorSuite = _ValidatorSuite
+            if KnowledgeBase is None:
+                from agent.knowledge.knowledge_base import KnowledgeBase as _KnowledgeBase
+                KnowledgeBase = _KnowledgeBase
+            if EmbeddingModel is None:
+                from agent.knowledge.embedding_model import EmbeddingModel as _EmbeddingModel
+                EmbeddingModel = _EmbeddingModel
+            if VectorStore is None:
+                from agent.knowledge.vector_store import VectorStore as _VectorStore
+                VectorStore = _VectorStore
+
             # Initialize knowledge base
             logger.debug(f"Loading knowledge base from {config.knowledge_base_path}")
             knowledge_base = KnowledgeBase(data_path=config.knowledge_base_path)
@@ -231,9 +269,9 @@ class WorkflowOrchestrator:
     
     def _build_vector_store(
         self,
-        knowledge_base: KnowledgeBase,
-        embedding_model: EmbeddingModel,
-        vector_store: VectorStore
+        knowledge_base: Any,
+        embedding_model: Any,
+        vector_store: Any
     ) -> None:
         """
         Build vector store from knowledge base.
@@ -459,16 +497,12 @@ class WorkflowOrchestrator:
             )
         
         # Fallback: Generate template patches if vulnerabilities found but no patches
-        print(f"DEBUG: vulnerabilities={len(vulnerabilities)}, patches={len(patches)}")
         if vulnerabilities and not patches:
-            print("DEBUG: Generating template patches...")
             logger.info("No patches generated, creating template-based patches")
             original_code = state.get("code", "")
             try:
                 patches = self._generate_template_patches(original_code, state.get("vulnerabilities", []))
-                print(f"DEBUG: Generated {len(patches)} template patches")
             except Exception as e:
-                print(f"DEBUG: Error generating patches: {e}")
                 logger.error(f"Error generating template patches: {e}")
         
         # Get errors and logs
@@ -564,10 +598,9 @@ FIXED CODE:
         
         # Template fallback (if LLM not available or failed)
         if patched_code == code:
-            for vuln in vulnerabilities:
-                vuln_type = vuln.vuln_type
-            
-            if vuln_type == "SQL Injection":
+            vuln_types = {v.vuln_type for v in vulnerabilities}
+
+            if "SQL Injection" in vuln_types:
                 # Replace f-string SQL queries with parameterized queries
                 patched_code = re.sub(
                     r'(query\s*=\s*)f(["\'])SELECT\s+\*\s+FROM\s+(\w+)\s+WHERE\s+(\w+)\s*=\s*\{(\w+)\}',
@@ -591,7 +624,7 @@ FIXED CODE:
                     patched_code
                 )
             
-            elif vuln_type == "Command Injection":
+            if "Command Injection" in vuln_types:
                 # Replace os.system with subprocess.run
                 patched_code = re.sub(
                     r'os\.system\s*\(\s*(\w+)\s*\)',
@@ -602,13 +635,19 @@ FIXED CODE:
                 if 'import subprocess' not in patched_code:
                     patched_code = 'import subprocess\n' + patched_code
             
-            elif vuln_type == "Path Traversal":
+            if "Path Traversal" in vuln_types:
                 # Add path sanitization
                 patched_code = re.sub(
                     r'open\s*\(\s*f["\']([^"\']*)\{(\w+)\}["\']',
                     r'open(os.path.join("\1", os.path.basename(\2))',
                     patched_code
                 )
+
+            if "Code Injection" in vuln_types:
+                patched_code = re.sub(r'\beval\s*\(', 'ast.literal_eval(', patched_code)
+                # Add imports for safe eval fallback only when needed.
+                if 'ast.literal_eval(' in patched_code and 'import ast' not in patched_code:
+                    patched_code = 'import ast\n' + patched_code
         
         if patched_code != code:
             # Generate diff
