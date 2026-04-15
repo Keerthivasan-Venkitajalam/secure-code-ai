@@ -4,7 +4,7 @@ Defines the 4-agent cyclic state machine for vulnerability detection and patchin
 """
 
 import os
-from typing import Dict, Any, Literal
+from typing import Dict, Any, Literal, Optional
 from langgraph.graph import StateGraph, END
 
 from .state import AgentState
@@ -81,8 +81,8 @@ def create_workflow(
     speculator: SpeculatorAgent,
     symbot: SymBotAgent,
     patcher: PatcherAgent,
-    binary_analyzer: BinaryAnalyzerAgent,
-    smart_contract_agent: SmartContractAgent,
+    binary_analyzer: Optional[BinaryAnalyzerAgent] = None,
+    smart_contract_agent: Optional[SmartContractAgent] = None,
 ) -> StateGraph:
 
 
@@ -113,28 +113,34 @@ def create_workflow(
     workflow.add_node("speculator", speculator.execute)
     workflow.add_node("symbot", symbot.execute)
     workflow.add_node("patcher", patcher.execute)
-    workflow.add_node("binary_analyzer", binary_analyzer.execute)
-    workflow.add_node("smart_contract_agent", smart_contract_agent.execute)
+    if binary_analyzer is not None:
+        workflow.add_node("binary_analyzer", binary_analyzer.execute)
+    if smart_contract_agent is not None:
+        workflow.add_node("smart_contract_agent", smart_contract_agent.execute)
     
-    def route_start(state: AgentState) -> Literal["scanner", "binary_analyzer", "smart_contract_agent"]:
-        if state.get("binary_path"):
+    def route_start(state: AgentState) -> str:
+        if state.get("binary_path") and binary_analyzer is not None:
             return "binary_analyzer"
-        if state.get("file_path", "").endswith(".sol"):
+        if state.get("file_path", "").endswith(".sol") and smart_contract_agent is not None:
             return "smart_contract_agent"
         return "scanner"
+
+    entry_routes = {"scanner": "scanner"}
+    if binary_analyzer is not None:
+        entry_routes["binary_analyzer"] = "binary_analyzer"
+    if smart_contract_agent is not None:
+        entry_routes["smart_contract_agent"] = "smart_contract_agent"
 
     # Set entry point
     workflow.set_conditional_entry_point(
         route_start,
-        {
-            "scanner": "scanner",
-            "binary_analyzer": "binary_analyzer",
-            "smart_contract_agent": "smart_contract_agent"
-        }
+        entry_routes
     )
     
-    workflow.add_edge("binary_analyzer", END)
-    workflow.add_edge("smart_contract_agent", END)
+    if binary_analyzer is not None:
+        workflow.add_edge("binary_analyzer", END)
+    if smart_contract_agent is not None:
+        workflow.add_edge("smart_contract_agent", END)
     
     # Add conditional edges
     workflow.add_conditional_edges(
@@ -187,8 +193,8 @@ def run_analysis(code: str, file_path: str = "unknown") -> AgentState:
     speculator = SpeculatorAgent()
     symbot = SymBotAgent()
     patcher = PatcherAgent()
-    binary_analyzer = BinaryAnalyzerAgent()
-    smart_contract_agent = SmartContractAgent()
+    binary_analyzer = BinaryAnalyzerAgent() if BinaryAnalyzerAgent is not None else None
+    smart_contract_agent = SmartContractAgent() if SmartContractAgent is not None else None
     
     # Create workflow
     app = create_workflow(scanner, speculator, symbot, patcher, binary_analyzer, smart_contract_agent)
