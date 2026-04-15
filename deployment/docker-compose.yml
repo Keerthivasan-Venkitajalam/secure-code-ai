@@ -16,7 +16,7 @@ services:
       # Override specific settings if needed
       - SECUREAI_HOST=0.0.0.0
       - SECUREAI_PORT=8000
-      - GOOGLE_APPLICATION_CREDENTIALS=/app/secrets/inquinion-code-801c22313fa5.json
+      - GOOGLE_APPLICATION_CREDENTIALS=${GOOGLE_APPLICATION_CREDENTIALS:-/app/secrets/gcp-service-account.json}
     volumes:
       # Mount local code directory for development (hot reload)
       - ../api:/app/api:ro
