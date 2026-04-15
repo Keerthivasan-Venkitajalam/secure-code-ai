@@ -6,7 +6,7 @@ This guide shows you how to develop and test the SecureCodeAI VS Code extension 
 
 - Node.js 18+ installed
 - VS Code installed
-- SecureCodeAI backend running locally (see `deployment/LOCAL_SETUP_GUIDE.md`)
+- SecureCodeAI backend running locally (see `../SETUP.md` and `../WINDOWS_QUICKSTART.md`)
 
 ## Quick Start
 
@@ -350,7 +350,7 @@ vsce package
 vsce publish
 ```
 
-See `../deployment/LOCAL_SETUP_GUIDE.md` for marketplace publication details.
+See `../EXTENSION_GUIDE.md` for packaging and publication details.
 
 ## Next Steps
 
@@ -363,7 +363,7 @@ See `../deployment/LOCAL_SETUP_GUIDE.md` for marketplace publication details.
 ## Support
 
 - **Extension Issues**: Check `README.md`
-- **Backend Issues**: Check `../deployment/LOCAL_SETUP_GUIDE.md`
+- **Backend Issues**: Check `../SETUP.md` and `../WINDOWS_QUICKSTART.md`
 - **API Issues**: Check `../api/README.md`
 
 ## Summary

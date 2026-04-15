@@ -9,6 +9,8 @@ This directory contains Docker configuration and deployment scripts for SecureCo
 - **[Deployment Guide](RUNPOD_DEPLOYMENT.md)** - Deploy to RunPod (Task 3.2)
 - **[Docker Compose](DOCKER_COMPOSE.md)** - Local development setup
 - **[Docker Setup](DOCKER_SETUP.md)** - Container setup details
+- **[Semantic Scanning Guide](../SEMANTIC_SCANNING_GUIDE.md)** - Semantic detection and RAG configuration
+- **[Knowledge Base Management](../KNOWLEDGE_BASE_MANAGEMENT.md)** - Knowledge base and vector store lifecycle
 
 ## Files
 
@@ -21,6 +23,11 @@ This directory contains Docker configuration and deployment scripts for SecureCo
 - `validate_runpod_setup.py` - Validate RunPod account setup
 - `estimate_costs.py` - Cost estimation tool
 - `README.md` - This file
+
+Related operational scripts (outside this directory):
+- `scripts/migrate_knowledge_base.py` - Import/validate pattern CSV data
+- `scripts/rebuild_vector_store.py` - Rebuild vector index from knowledge base
+- `scripts/validate_integration.py` - End-to-end semantic stack checks
 
 ## Building the Container
 
@@ -90,10 +97,24 @@ The container supports the following environment variables:
 - `SECUREAI_MODEL_PATH` - Path to model weights (default: /models/deepseek-coder-v2-lite-instruct)
 - `SECUREAI_MODEL_NAME` - HuggingFace model name (default: deepseek-ai/DeepSeek-Coder-V2-Lite-Instruct)
 - `SECUREAI_ENABLE_GPU` - Enable GPU acceleration (default: true)
+- `SECUREAI_USE_OLLAMA` - Enable Ollama backend
+- `SECUREAI_OLLAMA_MODEL` - Ollama model name
+- `SECUREAI_OLLAMA_URL` - Ollama base URL
+- `SECUREAI_USE_GEMINI` - Enable Gemini backend
+- `SECUREAI_USE_LOCAL_LLM` - Enable local GGUF backend
 - `SECUREAI_LOG_LEVEL` - Logging level (default: INFO)
 - `SECUREAI_MAX_ITERATIONS` - Max patch refinement iterations (default: 3)
 - `SECUREAI_RATE_LIMIT_REQUESTS` - Rate limit per minute (default: 10)
 - `SECUREAI_ENABLE_DOCS` - Enable API docs (default: true)
+
+Semantic scanning environment variables:
+
+- `SECUREAI_ENABLE_SEMANTIC_SCANNING`
+- `SECUREAI_KNOWLEDGE_BASE_PATH`
+- `SECUREAI_EMBEDDING_MODEL_NAME`
+- `SECUREAI_VECTOR_STORE_PATH`
+- `SECUREAI_SIMILARITY_THRESHOLD`
+- `SECUREAI_TOP_K_RESULTS`
 
 ## Model Download
 

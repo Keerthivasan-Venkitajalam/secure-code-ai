@@ -18,7 +18,9 @@ SecureCodeAI is a neuro-symbolic vulnerability detection and patching system tha
 1. **Large Language Models (LLMs)** - For intelligent code analysis and patch generation
 2. **Symbolic Execution** - For formal verification of vulnerabilities
 3. **Static Analysis** - For fast initial vulnerability detection
-4. **Multi-Agent Workflow** - For coordinated analysis and patching
+4. **Semantic Retrieval (RAG)** - For pattern-based bug detection from a knowledge base
+5. **Specialized Validators** - For hardware, lifecycle, and API typo checks
+6. **Multi-Agent Workflow** - For coordinated analysis and patching
 
 ### High-Level Architecture
 
@@ -88,6 +90,8 @@ SecureCodeAI is a neuro-symbolic vulnerability detection and patching system tha
 └─────────────────────────────────────────────────────────────┘
 ```
 
+The workflow also supports an optional semantic layer where a semantic scanner and validator suite augment Scanner output before patch generation.
+
 ## Component Architecture
 
 ### 1. API Layer (`api/`)
@@ -112,6 +116,8 @@ SecureCodeAI is a neuro-symbolic vulnerability detection and patching system tha
 **Endpoints:**
 ```
 POST   /analyze          - Analyze code for vulnerabilities
+POST   /search_similar   - Search similar bug patterns in knowledge base
+GET    /knowledge_base/stats - Get knowledge base statistics
 GET    /health           - Health check
 GET    /health/ready     - Readiness check
 GET    /                 - API information
@@ -195,6 +201,32 @@ class AgentState:
 }
 ```
 
+#### Semantic Scanner Node (`semantic_scanner.py`)
+
+**Purpose:** RAG-based vulnerability detection using pattern similarity
+
+**Technology:** Knowledge base (`agent/knowledge/*`) + embedding model + vector store
+
+**Process:**
+1. Generate embedding from incoming code
+2. Query vector store for top-k similar patterns
+3. Filter by configured similarity threshold
+4. Emit semantic vulnerabilities for result merge
+
+#### Validator Suite (`agent/validators/validator_suite.py`)
+
+**Purpose:** Run specialized validators on input code
+
+**Validators:**
+- Hardware validator
+- Lifecycle validator
+- API typo detector
+
+**Process:**
+1. Detect whether relevant calls exist in input code
+2. Run enabled validators conditionally
+3. Aggregate violations/suggestions into workflow state
+
 #### Speculator Agent (`speculator.py`)
 
 **Purpose:** Generate formal security contracts using LLM
@@ -260,31 +292,21 @@ def get_user(username: str) -> User:
 }
 ```
 
-### 4. Inference Layer (`api/vllm_client.py`)
+### 4. Inference Layer (Multi-backend)
 
-#### vLLM Client
+SecureCodeAI supports multiple inference backends and chooses one during orchestrator initialization.
 
-**Purpose:** High-performance LLM inference
+**Backend order (current implementation):**
+1. Ollama (`api/ollama_client.py`)
+2. Gemini (`api/gemini_client.py`)
+3. Local GGUF (`api/local_llm_client.py`)
+4. vLLM fallback (`api/vllm_client.py`)
 
-**Features:**
+**vLLM-specific features:**
 - PagedAttention for efficient KV cache management
 - Continuous batching for improved throughput
 - AWQ 4-bit quantization for reduced memory
-- GPU acceleration (optional)
-- Retry logic with exponential backoff
-
-**Configuration:**
-```python
-{
-    "model": "DeepSeek-Coder-V2-Lite-Instruct",
-    "quantization": "awq",
-    "gpu_memory_utilization": 0.9,
-    "tensor_parallel_size": 1,
-    "temperature": 0.2,
-    "top_p": 0.95,
-    "max_tokens": 2048
-}
-```
+- GPU acceleration
 
 ## Data Flow
 
@@ -465,9 +487,17 @@ Final State
 - GPU optimization
 
 **Alternatives Considered:**
-- Ollama (less control over batching)
+- Ollama (simpler local setup, lower throughput control)
 - HuggingFace Transformers (slower inference)
 - llama.cpp (C++ complexity)
+
+### Why Multiple LLM Backends?
+
+**Reasoning:**
+- Ollama for simple local setup
+- Gemini for managed cloud inference
+- Local GGUF for offline compatibility
+- vLLM for Linux GPU throughput
 
 ### Why LangGraph?
 

@@ -42,6 +42,8 @@ SecureCodeAI combines static analysis, LLM reasoning, and symbolic execution to 
 ### What it does
 
 - Detects likely vulnerabilities in source code
+- Searches a bug-pattern knowledge base using semantic similarity
+- Runs specialized validators (hardware, lifecycle, API typo)
 - Generates formal hypotheses and verification context
 - Runs symbolic checks to validate findings
 - Produces patch candidates with reviewable diffs
@@ -84,6 +86,8 @@ graph TB
 | Component | Responsibility |
 |-----------|----------------|
 | Scanner Agent | Initial SAST and code-slice extraction |
+| Semantic Scanner | RAG-based pattern matching from knowledge base |
+| Validator Suite | Hardware/lifecycle/API typo checks |
 | Speculator Agent | Security hypothesis and contract generation |
 | SymBot Agent | Symbolic validation and counterexample checks |
 | Patcher Agent | Patch synthesis and iterative refinement |
@@ -241,14 +245,22 @@ Copy [deployment/.env.example](deployment/.env.example) to `.env` and set values
 | Variable | Description |
 |----------|-------------|
 | `SECUREAI_USE_GEMINI` | Use Gemini cloud backend |
+| `SECUREAI_USE_OLLAMA` | Use Ollama backend |
+| `SECUREAI_OLLAMA_MODEL` | Ollama model name |
+| `SECUREAI_OLLAMA_URL` | Ollama server URL |
 | `SECUREAI_GEMINI_API_KEY` | Primary Gemini key env var |
 | `GEMINI_API_KEY` | Compatibility fallback key |
 | `SECUREAI_USE_LOCAL_LLM` | Enable local model backend |
 | `SECUREAI_MODEL_PATH` | Local model path |
+| `SECUREAI_ENABLE_SEMANTIC_SCANNING` | Enable semantic bug detection |
+| `SECUREAI_KNOWLEDGE_BASE_PATH` | Path to knowledge base CSV |
+| `SECUREAI_VECTOR_STORE_PATH` | Path to vector store directory |
+| `SECUREAI_SIMILARITY_THRESHOLD` | Similarity threshold for pattern matches |
+| `SECUREAI_TOP_K_RESULTS` | Maximum semantic matches returned |
 | `SECUREAI_MAX_ITERATIONS` | Patch loop limit |
 | `SECUREAI_SYMBOT_TIMEOUT` | Symbolic execution timeout |
 | `SECUREAI_RATE_LIMIT_REQUESTS` | Per-minute request limit |
-| `SECUREAI_CORS_ALLOWED_ORIGINS` | Comma-separated allowed origins |
+| `SECUREAI_ENABLE_DOCS` | Enable Swagger/ReDoc endpoints |
 
 ---
 
@@ -257,6 +269,8 @@ Copy [deployment/.env.example](deployment/.env.example) to `.env` and set values
 ### Core Endpoints
 
 - `POST /analyze` - Analyze code and return vulnerabilities and patch candidates
+- `POST /search_similar` - Search similar bug patterns in the knowledge base
+- `GET /knowledge_base/stats` - Get knowledge base statistics
 - `GET /health` - Liveness and health status
 - `GET /health/ready` - Readiness for traffic
 - `GET /docs` - Swagger docs (when enabled)
@@ -279,6 +293,10 @@ Copy [deployment/.env.example](deployment/.env.example) to `.env` and set values
   "analysis_id": "uuid",
   "vulnerabilities": [],
   "patches": [],
+  "semantic_vulnerabilities": [],
+  "hardware_violations": [],
+  "lifecycle_violations": [],
+  "api_typo_suggestions": [],
   "execution_time": 0.0,
   "errors": [],
   "logs": [],
@@ -340,6 +358,10 @@ secure-code-ai/
 - [SETUP.md](SETUP.md)
 - [ARCHITECTURE.md](ARCHITECTURE.md)
 - [LLM_AGENT_ARCHITECTURE.md](LLM_AGENT_ARCHITECTURE.md)
+- [MULTI_LLM_ARCHITECTURE.md](MULTI_LLM_ARCHITECTURE.md)
+- [SEMANTIC_SCANNING_GUIDE.md](SEMANTIC_SCANNING_GUIDE.md)
+- [KNOWLEDGE_BASE_MANAGEMENT.md](KNOWLEDGE_BASE_MANAGEMENT.md)
+- [SCRIPTS_REFERENCE.md](SCRIPTS_REFERENCE.md)
 - [deployment/README.md](deployment/README.md)
 - [EXTENSION_GUIDE.md](EXTENSION_GUIDE.md)
 - [extension/README.md](extension/README.md)

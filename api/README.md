@@ -1,87 +1,68 @@
 # SecureCodeAI API Module
 
-This module provides the FastAPI backend for SecureCodeAI with multiple LLM backend options.
+This module provides the FastAPI backend for analysis, semantic search, and knowledge-base stats.
 
-## LLM Client Architecture
+## Key Files
 
-SecureCodeAI supports three LLM backends for maximum flexibility:
+- `server.py`: FastAPI app and endpoints
+- `models.py`: Request/response models
+- `config.py`: Environment-based configuration
+- `orchestrator.py`: Workflow and backend initialization
+- `ollama_client.py`: Ollama backend client
+- `gemini_client.py`: Gemini backend client
+- `local_llm_client.py`: Local GGUF backend client
+- `vllm_client.py`: vLLM backend client
 
-### 1. Gemini Client (`gemini_client.py`) - **Recommended**
-- **Use Case**: Production deployments, fastest inference
-- **Provider**: Google Gemini 2.5 Flash API
-- **Advantages**: 
-  - Cloud-based, no local GPU required
-  - Fast inference (<1s typical)
-  - Latest model capabilities
-  - Reliable and scalable
-- **Configuration**:
-  ```bash
-  set SECUREAI_USE_GEMINI=true
-  set SECUREAI_GEMINI_API_KEY=your_api_key
-  ```
+## API Endpoints
 
-### 2. vLLM Client (`vllm_client.py`) - **Linux GPU**
-- **Use Case**: Self-hosted deployments with GPU
-- **Provider**: vLLM engine with DeepSeek-Coder-V2-Lite
-- **Advantages**:
-  - High-performance GPU inference
-  - Full data privacy (on-premise)
-  - Optimized for throughput
-- **Requirements**: Linux, CUDA-capable GPU
-- **Configuration**:
-  ```bash
-  set SECUREAI_USE_GEMINI=false
-  set SECUREAI_USE_LOCAL_LLM=false
-  ```
+- `POST /analyze`: vulnerability analysis and patch generation
+- `POST /search_similar`: semantic search against pattern knowledge base
+- `GET /knowledge_base/stats`: knowledge-base counts and categories
+- `GET /health`: liveness/health
+- `GET /health/ready`: readiness
+- `GET /docs`, `GET /redoc`: API docs (when enabled)
 
-### 3. Local LLM Client (`local_llm_client.py`) - **Windows/CPU**
-- **Use Case**: Development, offline environments, Windows
-- **Provider**: llama-cpp-python or ctransformers with GGUF models
-- **Advantages**:
-  - Works on Windows/Mac/Linux
-  - CPU or GPU support
-  - Fully offline
-  - Lower memory requirements
-- **Configuration**:
-  ```bash
-  set SECUREAI_USE_GEMINI=false
-  set SECUREAI_USE_LOCAL_LLM=true
-  set SECUREAI_MODEL_PATH=models/deepseek-q2/DeepSeek-Coder-V2-Lite-Instruct-Q2_K.gguf
-  ```
+## LLM Backends
 
-## Module Files
+The orchestrator initializes backends in priority order:
 
-- `server.py` - FastAPI application with endpoints
-- `models.py` - Pydantic models for request/response validation
-- `config.py` - Environment-based configuration management
-- `orchestrator.py` - Multi-agent workflow orchestration
-- `logging_config.py` - Structured logging configuration
-- `shutdown.py` - Graceful shutdown handling
-- `gemini_client.py` - Google Gemini API client
-- `vllm_client.py` - vLLM inference engine client
-- `local_llm_client.py` - Local GGUF model client
+1. Ollama (`SECUREAI_USE_OLLAMA`)
+2. Gemini (`SECUREAI_USE_GEMINI`)
+3. Local GGUF (`SECUREAI_USE_LOCAL_LLM`)
+4. vLLM fallback
+
+## Semantic Scanning Configuration
+
+These settings are defined in `api/config.py`:
+
+- `SECUREAI_ENABLE_SEMANTIC_SCANNING`
+- `SECUREAI_KNOWLEDGE_BASE_PATH`
+- `SECUREAI_EMBEDDING_MODEL_NAME`
+- `SECUREAI_EMBEDDING_MODEL_PATH`
+- `SECUREAI_VECTOR_STORE_PATH`
+- `SECUREAI_SIMILARITY_THRESHOLD`
+- `SECUREAI_TOP_K_RESULTS`
+- `SECUREAI_ENABLE_HARDWARE_VALIDATION`
+- `SECUREAI_ENABLE_LIFECYCLE_VALIDATION`
+- `SECUREAI_ENABLE_API_TYPO_DETECTION`
+- `SECUREAI_EMBEDDING_BATCH_SIZE`
+- `SECUREAI_VECTOR_STORE_MAX_MEMORY_MB`
+- `SECUREAI_SEMANTIC_SCAN_TIMEOUT`
+- `SECUREAI_VECTOR_STORE_HNSW_EF`
+- `SECUREAI_EMBEDDING_CACHE_SIZE`
 
 ## Quick Start
 
 ```bash
-# Cloud mode (recommended)
-set SECUREAI_USE_GEMINI=true
-set SECUREAI_GEMINI_API_KEY=your_key
-python -m api.server
-
-# Local GPU mode (Linux)
-python -m api.server
-
-# Local CPU mode (Windows)
-set SECUREAI_USE_LOCAL_LLM=true
+pip install -r requirements.txt
 python -m api.server
 ```
 
-## API Endpoints
+For local configuration, copy `deployment/.env.example` to `deployment/.env` and set values for your environment.
 
-- `POST /analyze` - Analyze code for vulnerabilities
-- `GET /health` - Health check endpoint
-- `GET /docs` - Interactive API documentation
-- `GET /redoc` - Alternative API documentation
+## Related Docs
 
-See [ARCHITECTURE.md](../ARCHITECTURE.md) for detailed system design.
+- [README.md](../README.md)
+- [ARCHITECTURE.md](../ARCHITECTURE.md)
+- [SEMANTIC_SCANNING_GUIDE.md](../SEMANTIC_SCANNING_GUIDE.md)
+- [KNOWLEDGE_BASE_MANAGEMENT.md](../KNOWLEDGE_BASE_MANAGEMENT.md)

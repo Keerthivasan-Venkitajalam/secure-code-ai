@@ -4,6 +4,16 @@
 
 The SecureCodeAI system uses LLM-powered agents to perform intelligent vulnerability detection, formal contract generation, and security patch synthesis. This document describes the architecture, prompt templates, self-correction loops, and neuro-slicing algorithm that enable the system to achieve high accuracy and reliability.
 
+## Scope Note
+
+This document focuses on the LLM-driven agent path (Scanner, Speculator, Patcher).
+
+Semantic pattern matching, knowledge-base operations, and validator suite behavior are documented separately:
+
+- [SEMANTIC_SCANNING_GUIDE.md](SEMANTIC_SCANNING_GUIDE.md)
+- [KNOWLEDGE_BASE_MANAGEMENT.md](KNOWLEDGE_BASE_MANAGEMENT.md)
+- [SCRIPTS_REFERENCE.md](SCRIPTS_REFERENCE.md)
+
 ## Architecture Diagram
 
 ```
