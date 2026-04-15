@@ -58,7 +58,10 @@ async def lifespan(app: FastAPI):
     # Startup
     configure_logging()
     logger.info(f"Starting SecureCodeAI API Server v{app.version}")
-    logger.info(f"Configuration: {config.model_dump()}")
+    safe_config = config.model_dump()
+    if safe_config.get("gemini_api_key"):
+        safe_config["gemini_api_key"] = "***redacted***"
+    logger.info(f"Configuration: {safe_config}")
     
     # Setup signal handlers for graceful shutdown
     def shutdown_callback():
@@ -161,10 +164,19 @@ Powered by DeepSeek-Coder-V2-Lite-Instruct (16B parameters) served via vLLM for 
 )
 
 # Add CORS middleware
+cors_allowed_origins = [
+    origin.strip()
+    for origin in config.cors_allowed_origins.split(",")
+    if origin.strip()
+]
+if not cors_allowed_origins:
+    cors_allowed_origins = ["http://localhost:3000"]
+allow_all_origins = "*" in cors_allowed_origins
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
-    allow_credentials=True,
+    allow_origins=["*"] if allow_all_origins else cors_allowed_origins,
+    allow_credentials=not allow_all_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
