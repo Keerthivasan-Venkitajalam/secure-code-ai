@@ -32,7 +32,8 @@ jobs:
             tenacity \
             requests \
             numpy \
-            rapidfuzz
+            rapidfuzz \
+            loguru
 
       - name: Block Hardcoded Secrets
         run: |
