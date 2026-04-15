@@ -365,7 +365,7 @@ secure-code-ai/
 - [deployment/README.md](deployment/README.md)
 - [EXTENSION_GUIDE.md](EXTENSION_GUIDE.md)
 - [extension/README.md](extension/README.md)
-- [WINDOWS_QUICKSTART.md](WINDOWS_QUICKSTART.md)
+- [QUICKSTART.md](QUICKSTART.md)
 - [LOAD_TESTING.md](LOAD_TESTING.md)
 
 ---
