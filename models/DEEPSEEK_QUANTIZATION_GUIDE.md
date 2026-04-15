@@ -4,9 +4,9 @@ Your laptop (i9-13900H, RTX 4060 8GB, 16GB RAM) can run DeepSeek, but needs the 
 
 | Quantization | Model Size | RAM Usage* | Quality | Status |
 |--------------|-----------|-----------|---------|--------|
-| Q4_K_M | 10.4 GB | ~11-12 GB | High | ❌ Too large (OOM) |
-| **Q3_K_M** | **8.1 GB** | **~9-10 GB** | **Medium-High** | **✅ Downloading** |
-| Q2_K | 5.9 GB | ~6-7 GB | Medium | ✅ Best fit |
+| Q4_K_M | 10.4 GB | ~11-12 GB | High |  Too large (OOM) |
+| **Q3_K_M** | **8.1 GB** | **~9-10 GB** | **Medium-High** | ** Downloading** |
+| Q2_K | 5.9 GB | ~6-7 GB | Medium |  Best fit |
 
 *RAM usage includes model + Ollama overhead + Windows (2-3GB)
 
