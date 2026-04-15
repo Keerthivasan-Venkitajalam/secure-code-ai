@@ -5,10 +5,10 @@ This directory contains Docker configuration and deployment scripts for SecureCo
 ## Quick Links
 
 - **[RunPod Account Setup](RUNPOD_ACCOUNT_SETUP.md)** - Complete guide for Task 3.1
-- **[Setup Checklist](RUNPOD_SETUP_CHECKLIST.md)** - Track your setup progress
 - **[Cost Estimation](estimate_costs.py)** - Estimate monthly RunPod costs
 - **[Deployment Guide](RUNPOD_DEPLOYMENT.md)** - Deploy to RunPod (Task 3.2)
 - **[Docker Compose](DOCKER_COMPOSE.md)** - Local development setup
+- **[Docker Setup](DOCKER_SETUP.md)** - Container setup details
 
 ## Files
 
@@ -167,7 +167,6 @@ cd scripts
 
 - **Deployment Guide**: See [RUNPOD_DEPLOYMENT.md](RUNPOD_DEPLOYMENT.md) for detailed deployment instructions
 - **Configuration**: See [runpod.yaml](runpod.yaml) for RunPod Serverless configuration
-- **Test Plan**: See [RUNPOD_TEST_PLAN.md](RUNPOD_TEST_PLAN.md) for manual testing procedures
 
 ### Key Features
 
