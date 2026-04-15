@@ -24,6 +24,7 @@ langchain-community>=0.3.0
 crosshair-tool>=0.0.99
 z3-solver>=4.13.0
 angr==9.2.112  # Pinned to avoid protobuf conflict
+pwntools>=4.11.0  # Exploit generation support
 
 
 # Static Analysis
