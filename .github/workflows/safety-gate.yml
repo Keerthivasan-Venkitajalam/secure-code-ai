@@ -1,0 +1,66 @@
+name: Safety Gate
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  safety-gate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Minimal Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install \
+            pytest \
+            fastapi \
+            pydantic \
+            pydantic-settings \
+            slowapi \
+            langgraph \
+            tenacity \
+            requests \
+            numpy \
+            rapidfuzz
+
+      - name: Block Hardcoded Secrets
+        run: |
+          if grep -RInE "AIza[0-9A-Za-z_-]{35}|ghp_[A-Za-z0-9]{36}|sk-[A-Za-z0-9]{20,}" api agent scripts deployment; then
+            echo "Hardcoded secret-like token detected"
+            exit 1
+          fi
+
+      - name: Import Smoke Test
+        run: |
+          python - <<'PY'
+          import importlib
+
+          modules = [
+              "api.config",
+              "api.gemini_client",
+              "api.orchestrator",
+              "api.server",
+              "agent.graph",
+              "agent.nodes.workflow_nodes",
+          ]
+
+          for module_name in modules:
+              importlib.import_module(module_name)
+
+          print("Import smoke checks passed")
+          PY
+
+      - name: Run Core Fast Tests
+        run: |
+          pytest -q tests/test_state.py
