@@ -3,6 +3,7 @@
   "displayName": "SecureCodeAI",
   "description": "Neuro-Symbolic Vulnerability Detection and Automated Patching",
   "version": "0.1.0",
+  "license": "UNLICENSED",
   "publisher": "securecodai",
   "icon": "images/icon.png",
   "repository": {
