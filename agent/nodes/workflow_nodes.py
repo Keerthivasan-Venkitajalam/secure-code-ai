@@ -8,25 +8,23 @@ This module provides LangGraph nodes for:
 """
 
 import logging
-from typing import List, Set, Tuple
+from typing import Set, Tuple, TYPE_CHECKING, Any
 
 from ..state import (
     AgentState,
-    SemanticVulnerability,
-    HardwareViolation,
-    LifecycleViolation,
-    APITypoSuggestion,
     Vulnerability
 )
-from .semantic_scanner import SemanticScanner
 from ..validators.validator_suite import ValidatorSuite
+
+if TYPE_CHECKING:
+    from .semantic_scanner import SemanticScanner
 
 logger = logging.getLogger(__name__)
 
 
 async def semantic_scanner_node(
     state: AgentState,
-    semantic_scanner: SemanticScanner
+    semantic_scanner: Any
 ) -> AgentState:
     """
     LangGraph node for semantic bug detection.
