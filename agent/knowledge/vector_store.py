@@ -10,9 +10,16 @@ import os
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Any
 
-import chromadb
 import numpy as np
-from chromadb.config import Settings
+
+try:
+    import chromadb
+    from chromadb.config import Settings
+    CHROMADB_AVAILABLE = True
+except ImportError:
+    chromadb = None
+    Settings = None
+    CHROMADB_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -72,33 +79,41 @@ class VectorStore:
         self.collection_name = collection_name
         self.max_memory_mb = max_memory_mb
         self.hnsw_ef = hnsw_ef
+        self._entries: Dict[str, Dict[str, Any]] = {}
         
         # Create persist directory if it doesn't exist
         os.makedirs(persist_directory, exist_ok=True)
-        
-        # Initialize ChromaDB client with persistent storage
-        self.client = chromadb.PersistentClient(
-            path=persist_directory,
-            settings=Settings(
-                anonymized_telemetry=False,
-                allow_reset=True
+
+        if CHROMADB_AVAILABLE:
+            # Initialize ChromaDB client with persistent storage
+            self.client = chromadb.PersistentClient(
+                path=persist_directory,
+                settings=Settings(
+                    anonymized_telemetry=False,
+                    allow_reset=True
+                )
             )
-        )
-        
-        # Get or create collection with optimized HNSW index
-        self.collection = self.client.get_or_create_collection(
-            name=collection_name,
-            metadata={
-                "hnsw:space": "cosine",  # Use cosine similarity
-                "hnsw:construction_ef": 200,  # Higher = better quality, slower build
-                "hnsw:search_ef": hnsw_ef  # Configurable for performance tuning
-            }
-        )
-        
-        logger.info(
-            f"Initialized vector store at {persist_directory} "
-            f"with collection '{collection_name}' (hnsw_ef={hnsw_ef})"
-        )
+
+            # Get or create collection with optimized HNSW index
+            self.collection = self.client.get_or_create_collection(
+                name=collection_name,
+                metadata={
+                    "hnsw:space": "cosine",  # Use cosine similarity
+                    "hnsw:construction_ef": 200,  # Higher = better quality, slower build
+                    "hnsw:search_ef": hnsw_ef  # Configurable for performance tuning
+                }
+            )
+            logger.info(
+                f"Initialized vector store at {persist_directory} "
+                f"with collection '{collection_name}' (hnsw_ef={hnsw_ef})"
+            )
+        else:
+            self.client = None
+            self.collection = None
+            logger.warning(
+                "chromadb not installed; using in-memory vector store fallback. "
+                "Install chromadb for persistent and indexed search."
+            )
     
     def add_embeddings(
         self,
@@ -130,6 +145,17 @@ class VectorStore:
         
         if n_embeddings == 0:
             logger.warning("No embeddings to add")
+            return
+
+        if not CHROMADB_AVAILABLE:
+            for embedding, document, metadata, id_value in zip(embeddings, documents, metadatas, ids):
+                self._entries[id_value] = {
+                    "embedding": np.asarray(embedding, dtype=np.float32),
+                    "document": document,
+                    "metadata": metadata,
+                }
+            logger.info(f"Added {n_embeddings} embeddings to in-memory vector store")
+            self._check_memory_usage()
             return
         
         # Convert numpy array to list of lists for ChromaDB
@@ -171,6 +197,37 @@ class VectorStore:
             List of SearchResult objects, sorted by similarity (highest first)
         """
         try:
+            if not CHROMADB_AVAILABLE:
+                query = np.asarray(query_embedding, dtype=np.float32)
+                query_norm = np.linalg.norm(query)
+                if query_norm == 0:
+                    return []
+
+                items: List[SearchResult] = []
+                for result_id, entry in self._entries.items():
+                    metadata = entry["metadata"]
+                    if filter and not all(metadata.get(k) == v for k, v in filter.items()):
+                        continue
+
+                    emb = entry["embedding"]
+                    emb_norm = np.linalg.norm(emb)
+                    similarity = 0.0 if emb_norm == 0 else float(np.dot(query, emb) / (query_norm * emb_norm))
+                    similarity = max(0.0, min(1.0, similarity))
+                    distance = 1.0 - similarity
+
+                    items.append(
+                        SearchResult(
+                            id=result_id,
+                            document=entry["document"],
+                            metadata=metadata,
+                            distance=distance,
+                            similarity=similarity,
+                        )
+                    )
+
+                items.sort(key=lambda item: item.similarity, reverse=True)
+                return items[:top_k]
+
             # Convert numpy array to list for ChromaDB
             query_list = query_embedding.tolist() if isinstance(query_embedding, np.ndarray) else query_embedding
             
@@ -221,6 +278,11 @@ class VectorStore:
         Warning: This permanently removes all data in the collection.
         """
         try:
+            if not CHROMADB_AVAILABLE:
+                self._entries.clear()
+                logger.info("Cleared in-memory vector store")
+                return
+
             self.client.delete_collection(name=self.collection_name)
             logger.info(f"Deleted collection '{self.collection_name}'")
             
@@ -247,6 +309,22 @@ class VectorStore:
             VectorStoreStats object with collection information
         """
         try:
+            if not CHROMADB_AVAILABLE:
+                count = len(self._entries)
+                if count == 0:
+                    memory_mb = 0.0
+                else:
+                    sample = next(iter(self._entries.values()))["embedding"]
+                    embedding_size_bytes = int(sample.size) * 4
+                    metadata_overhead = 1024
+                    memory_mb = (count * (embedding_size_bytes + metadata_overhead)) / (1024 * 1024)
+
+                return VectorStoreStats(
+                    collection_name=self.collection_name,
+                    document_count=count,
+                    memory_usage_mb=memory_mb
+                )
+
             # Get collection count
             count = self.collection.count()
             
@@ -303,6 +381,14 @@ class VectorStore:
             Dictionary with collection metadata and configuration
         """
         try:
+            if not CHROMADB_AVAILABLE:
+                return {
+                    "name": self.collection_name,
+                    "count": len(self._entries),
+                    "metadata": {"backend": "in-memory"},
+                    "persist_directory": self.persist_directory
+                }
+
             return {
                 "name": self.collection_name,
                 "count": self.collection.count(),
