@@ -143,7 +143,7 @@ Contributions are welcome! Please see [README.md](../README.md#contributing).
 
 ## License
 
-MIT License - see [LICENSE](../LICENSE) for details.
+Proprietary license - see [LICENSE](../LICENSE) for details.
 
 ## Links
 
