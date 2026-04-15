@@ -8,9 +8,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
+import os
 import time
 import uuid
 from datetime import datetime
+from urllib import request as urllib_request
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -44,6 +46,8 @@ class ServiceState:
         self.start_time = time.time()
         self.vllm_loaded = False
         self.workflow_ready = False
+        self.active_backend = "unknown"
+        self.backend_ready = False
         self.request_queue_depth = 0
         self.vllm_client = None
         self.orchestrator = None
@@ -56,13 +60,66 @@ service_state = ServiceState()
 limiter = Limiter(key_func=get_remote_address)
 
 
+def _configured_backend() -> str:
+    """Return currently configured LLM backend."""
+    if config.use_ollama:
+        return "ollama"
+    if config.use_gemini:
+        return "gemini"
+    if config.use_local_llm:
+        return "local_llm"
+    return "vllm"
+
+
+def _redact_config(raw_config: dict) -> dict:
+    """Redact sensitive fields before logging configuration."""
+    redacted = dict(raw_config)
+    secret_tokens = ("key", "secret", "token", "password", "credential")
+    for key, value in redacted.items():
+        if any(token in key.lower() for token in secret_tokens) and value:
+            redacted[key] = "***redacted***"
+    return redacted
+
+
+def _backend_ready(backend: str) -> bool:
+    """Check readiness for the configured backend."""
+    if backend == "gemini":
+        api_key = (
+            config.gemini_api_key
+            or os.getenv("SECUREAI_GEMINI_API_KEY")
+            or os.getenv("GEMINI_API_KEY")
+        )
+        return bool(api_key and api_key.strip())
+
+    if backend == "ollama":
+        try:
+            url = f"{config.ollama_url.rstrip('/')}/api/tags"
+            with urllib_request.urlopen(url, timeout=1.5) as response:
+                return 200 <= response.status < 300
+        except Exception:
+            return False
+
+    if backend == "local_llm":
+        return bool(config.model_path and config.model_path.strip())
+
+    # vLLM
+    return service_state.vllm_loaded
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifespan context manager for startup and shutdown."""
     # Startup
     configure_logging()
     logger.info(f"Starting SecureCodeAI API Server v{app.version}")
-    logger.info(f"Configuration: {config.model_dump()}")
+    logger.info(f"Configuration: {_redact_config(config.model_dump())}")
+
+    service_state.active_backend = _configured_backend()
+    service_state.backend_ready = _backend_ready(service_state.active_backend)
+    logger.info(
+        f"Configured backend: {service_state.active_backend} "
+        f"(ready={service_state.backend_ready})"
+    )
     
     # Setup signal handlers for graceful shutdown
     def shutdown_callback():
@@ -86,7 +143,7 @@ async def lifespan(app: FastAPI):
     
     try:
         # Initialize vLLM engine (if enabled)
-        if config.enable_gpu:
+        if config.enable_gpu and service_state.active_backend == "vllm":
             logger.info("Initializing vLLM engine...")
             service_state.vllm_client = get_vllm_client()
             # Note: Actual initialization happens on first request to avoid startup delays
@@ -165,10 +222,19 @@ Powered by DeepSeek-Coder-V2-Lite-Instruct (16B parameters) served via vLLM for 
 )
 
 # Add CORS middleware
+cors_allowed_origins = [
+    origin.strip()
+    for origin in config.cors_allowed_origins.split(",")
+    if origin.strip()
+]
+if not cors_allowed_origins:
+    cors_allowed_origins = ["http://localhost:3000"]
+allow_all_origins = "*" in cors_allowed_origins
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
-    allow_credentials=True,
+    allow_origins=["*"] if allow_all_origins else cors_allowed_origins,
+    allow_credentials=not allow_all_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -747,10 +813,15 @@ async def health_check():
     - request_queue_depth: Current request queue depth
     """
     uptime = time.time() - service_state.start_time
+
+    # Re-evaluate backend readiness at request time for backends that can change dynamically.
+    backend = service_state.active_backend or _configured_backend()
+    backend_ready = _backend_ready(backend)
+    service_state.backend_ready = backend_ready
     
     # Determine overall health status
     status = "healthy" if (
-        service_state.vllm_loaded and 
+        backend_ready and
         service_state.workflow_ready
     ) else "unhealthy"
     
@@ -781,6 +852,7 @@ async def health_check():
                                 "ready": True,
                                 "components": {
                                     "api_server": True,
+                                    "llm_backend": True,
                                     "vllm_engine": True,
                                     "agent_workflow": True
                                 }
@@ -792,6 +864,7 @@ async def health_check():
                                 "ready": False,
                                 "components": {
                                     "api_server": True,
+                                    "llm_backend": False,
                                     "vllm_engine": False,
                                     "agent_workflow": False
                                 }
@@ -809,16 +882,22 @@ async def readiness_check():
     
     Returns component-level readiness status:
     - api_server: Always true if this endpoint responds
-    - vllm_engine: Whether vLLM is loaded and ready
+    - llm_backend: Whether the configured LLM backend is ready
+    - vllm_engine: Backward-compatible vLLM readiness flag
     - agent_workflow: Whether the workflow is initialized
     """
+    backend = service_state.active_backend or _configured_backend()
+    backend_ready = _backend_ready(backend)
+    service_state.backend_ready = backend_ready
+
     components = {
         "api_server": True,  # If we're responding, API server is ready
+        "llm_backend": backend_ready,
         "vllm_engine": service_state.vllm_loaded,
         "agent_workflow": service_state.workflow_ready
     }
-    
-    ready = all(components.values())
+
+    ready = components["api_server"] and components["llm_backend"] and components["agent_workflow"]
     
     return ReadinessResponse(
         ready=ready,
