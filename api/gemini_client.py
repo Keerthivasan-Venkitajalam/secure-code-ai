@@ -28,7 +28,14 @@ class GeminiClient:
         Args:
             api_key: Google API Key (defaults to config)
         """
-        self.api_key = "AIzaSyBM1PQ7DpoZuVr0ShVBdDyaRcaPW3RU99U"
+        self.api_key = (
+            api_key
+            or config.gemini_api_key
+            or os.getenv("GEMINI_API_KEY")
+            or os.getenv("SECUREAI_GEMINI_API_KEY")
+        )
+        if self.api_key:
+            self.api_key = self.api_key.strip()
         self.model_name = "gemini-flash-latest" # Fast and capable default
         self.model = None
         self._initialized = False
