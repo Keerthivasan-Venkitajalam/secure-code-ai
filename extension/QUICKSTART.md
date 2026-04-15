@@ -52,7 +52,7 @@ def search_user(username):
 
 ### Test Patch Application
 
-1. Click the 💡 (Quick Fix) icon or press `Ctrl+.`
+1. Click the  (Quick Fix) icon or press `Ctrl+.`
 2. Select "Apply SecureCodeAI Patch (Verified)"
 3. The code should be automatically fixed
 
