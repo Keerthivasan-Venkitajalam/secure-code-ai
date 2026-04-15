@@ -310,6 +310,7 @@ class ReadinessResponse(BaseModel):
                 "ready": True,
                 "components": {
                     "api_server": True,
+                    "llm_backend": True,
                     "vllm_engine": True,
                     "agent_workflow": True
                 }
