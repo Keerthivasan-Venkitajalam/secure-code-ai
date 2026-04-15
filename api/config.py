@@ -85,6 +85,10 @@ class APIConfig(BaseSettings):
         default=True,
         description="Enable API documentation endpoints (/docs, /redoc)"
     )
+    cors_allowed_origins: str = Field(
+        default="http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173",
+        description="Comma-separated CORS origins. Use '*' to allow all origins"
+    )
     enable_gpu: bool = Field(
         default=True,
         description="Enable GPU acceleration for vLLM"
