@@ -30,11 +30,11 @@ SecureCodeAI now supports three different LLM backends, providing flexibility fo
 |---------|--------|------|-----------|
 | **Platform** | Cloud | Linux | Windows/Mac/Linux |
 | **Hardware** | None | GPU (CUDA) | CPU/GPU |
-| **Speed** | ⚡ Fast (< 1s) | ⚡ Fast (1-2s) | 🐢 Slow (5-10s) |
-| **Privacy** | ☁️ Cloud | 🔒 On-premise | 🔒 On-premise |
-| **Cost** | 💰 API fees | 💰 GPU hosting | 💰 Free |
-| **Setup** | ✅ Easy | ⚙️ Complex | ✅ Easy |
-| **Reliability** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ |
+| **Speed** |  Fast (< 1s) |  Fast (1-2s) |  Slow (5-10s) |
+| **Privacy** |  Cloud |  On-premise |  On-premise |
+| **Cost** |  API fees |  GPU hosting |  Free |
+| **Setup** |  Easy |  Complex |  Easy |
+| **Reliability** |  |  |  |
 
 ## Implementation Details
 
