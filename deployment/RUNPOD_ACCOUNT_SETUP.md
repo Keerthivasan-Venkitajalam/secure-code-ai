@@ -218,10 +218,10 @@ $env:RUNPOD_API_KEY = "your_api_key_here"
 
 After completing this setup:
 
-1. ✅ Account created and verified
-2. ✅ API key generated and saved securely
-3. ✅ Billing configured with spending limits
-4. ✅ Environment variables configured
+1.  Account created and verified
+2.  API key generated and saved securely
+3.  Billing configured with spending limits
+4.  Environment variables configured
 
 You're now ready to proceed to:
 - **Task 3.2**: Deploy Docker image to RunPod
