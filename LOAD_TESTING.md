@@ -126,10 +126,10 @@ The test uses 6 different code samples to simulate variety:
 
 ### Warning Signs
 
-⚠ **High Latency:** p95 > 10 seconds indicates performance issues  
-⚠ **High Failure Rate:** > 5% failures indicates stability issues  
-⚠ **Memory Growth:** Continuously increasing memory indicates leaks  
-⚠ **Rate Limiting:** Many 429 responses indicates rate limit too low  
+ **High Latency:** p95 > 10 seconds indicates performance issues  
+ **High Failure Rate:** > 5% failures indicates stability issues  
+ **Memory Growth:** Continuously increasing memory indicates leaks  
+ **Rate Limiting:** Many 429 responses indicates rate limit too low  
 
 ## Example Output
 
