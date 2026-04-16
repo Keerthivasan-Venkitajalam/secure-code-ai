@@ -8,6 +8,8 @@ This module provides comprehensive benchmark evaluation for SecureCodeAI, includ
 - **Metrics Collection**: Detection rate, precision, F1, patch validity, code churn
 - **Report Generation**: Plots, LaTeX tables, and markdown reports
 
+Latest published snapshot: [PUBLISHED_RESULTS.md](PUBLISHED_RESULTS.md)
+
 ## Quick Start
 
 ```python
