@@ -333,3 +333,72 @@ class TestAnalyzeEndpoint:
         
         # Queue depth should be back to initial after request completes
         assert server.service_state.request_queue_depth == initial_depth
+
+    def test_analyze_requires_api_key_when_auth_enabled(self, client):
+        """Test /analyze rejects requests without API key when auth is enabled."""
+        from api import server
+
+        mock_orchestrator = Mock()
+        mock_orchestrator.analyze_code = AsyncMock(
+            return_value=AnalyzeResponse(
+                analysis_id="test-123",
+                vulnerabilities=[],
+                patches=[],
+                execution_time=0.1,
+                errors=[],
+                logs=[],
+                workflow_complete=False
+            )
+        )
+        server.service_state.orchestrator = mock_orchestrator
+
+        prev_enabled = server.config.enable_api_auth
+        prev_api_key = server.config.api_key
+        try:
+            server.config.enable_api_auth = True
+            server.config.api_key = "unit-test-key"
+
+            response = client.post(
+                "/analyze",
+                json={"code": "print('hello world')"}
+            )
+
+            assert response.status_code == 401
+        finally:
+            server.config.enable_api_auth = prev_enabled
+            server.config.api_key = prev_api_key
+
+    def test_analyze_accepts_api_key_when_auth_enabled(self, client):
+        """Test /analyze accepts requests with a valid API key when auth is enabled."""
+        from api import server
+
+        mock_orchestrator = Mock()
+        mock_orchestrator.analyze_code = AsyncMock(
+            return_value=AnalyzeResponse(
+                analysis_id="test-123",
+                vulnerabilities=[],
+                patches=[],
+                execution_time=0.1,
+                errors=[],
+                logs=[],
+                workflow_complete=False
+            )
+        )
+        server.service_state.orchestrator = mock_orchestrator
+
+        prev_enabled = server.config.enable_api_auth
+        prev_api_key = server.config.api_key
+        try:
+            server.config.enable_api_auth = True
+            server.config.api_key = "unit-test-key"
+
+            response = client.post(
+                "/analyze",
+                headers={"X-API-Key": "unit-test-key"},
+                json={"code": "print('hello world')"}
+            )
+
+            assert response.status_code == 200
+        finally:
+            server.config.enable_api_auth = prev_enabled
+            server.config.api_key = prev_api_key
