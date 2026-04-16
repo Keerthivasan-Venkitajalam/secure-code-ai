@@ -8,7 +8,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
+import hmac
 import os
+import threading
 import time
 import uuid
 from datetime import datetime
@@ -43,6 +45,7 @@ from .shutdown import setup_signal_handlers, register_shutdown_callback
 # Global state for tracking service status
 class ServiceState:
     def __init__(self):
+        self._lock = threading.Lock()
         self.start_time = time.time()
         self.vllm_loaded = False
         self.workflow_ready = False
@@ -51,6 +54,23 @@ class ServiceState:
         self.request_queue_depth = 0
         self.vllm_client = None
         self.orchestrator = None
+
+    def increment_queue_depth(self) -> int:
+        """Increment queue depth and return the new value."""
+        with self._lock:
+            self.request_queue_depth += 1
+            return self.request_queue_depth
+
+    def decrement_queue_depth(self) -> int:
+        """Decrement queue depth safely and return the new value."""
+        with self._lock:
+            self.request_queue_depth = max(0, self.request_queue_depth - 1)
+            return self.request_queue_depth
+
+    def get_queue_depth(self) -> int:
+        """Return current queue depth in a thread-safe way."""
+        with self._lock:
+            return self.request_queue_depth
 
 
 service_state = ServiceState()
@@ -104,6 +124,37 @@ def _backend_ready(backend: str) -> bool:
 
     # vLLM
     return service_state.vllm_loaded
+
+
+def _extract_auth_token(request: Request) -> str:
+    """Extract API token from X-API-Key or Authorization header."""
+    token = request.headers.get("x-api-key", "").strip()
+    if token:
+        return token
+
+    auth_header = request.headers.get("authorization", "").strip()
+    if auth_header.lower().startswith("bearer "):
+        return auth_header[7:].strip()
+
+    return ""
+
+
+def _enforce_api_auth(request: Request) -> None:
+    """Enforce API key authentication when enabled."""
+    if not config.enable_api_auth:
+        return
+
+    expected_key = (config.api_key or os.getenv("SECUREAI_API_KEY") or "").strip()
+    if not expected_key:
+        logger.error("API authentication enabled but no API key configured")
+        raise HTTPException(
+            status_code=503,
+            detail="API authentication is enabled but no server API key is configured",
+        )
+
+    provided_key = _extract_auth_token(request)
+    if not provided_key or not hmac.compare_digest(provided_key, expected_key):
+        raise HTTPException(status_code=401, detail="Invalid or missing API key")
 
 
 @asynccontextmanager
@@ -369,6 +420,19 @@ async def root():
                 }
             }
         },
+        401: {
+            "description": "Authentication failed (missing or invalid API key)",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": "Unauthorized",
+                        "detail": "Invalid or missing API key",
+                        "request_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                        "timestamp": "2025-01-24T12:34:56.789Z"
+                    }
+                }
+            }
+        },
         429: {
             "description": "Rate limit exceeded",
             "content": {
@@ -441,7 +505,8 @@ async def analyze_code(request: Request, analyze_request: AnalyzeRequest):
     })
     
     try:
-        service_state.request_queue_depth += 1
+        _enforce_api_auth(request)
+        service_state.increment_queue_depth()
         
         # Check if orchestrator is ready
         if not service_state.orchestrator:
@@ -461,8 +526,9 @@ async def analyze_code(request: Request, analyze_request: AnalyzeRequest):
         execution_time = time.time() - start_time
         
         # Include queue depth in response when under load (queue depth > 1)
-        if service_state.request_queue_depth > 1:
-            response.queue_depth = service_state.request_queue_depth
+        queue_depth = service_state.get_queue_depth()
+        if queue_depth > 1:
+            response.queue_depth = queue_depth
         
         logger.info(f"Code analysis completed", extra={
             "request_id": analysis_id,
@@ -488,7 +554,7 @@ async def analyze_code(request: Request, analyze_request: AnalyzeRequest):
         )
     
     finally:
-        service_state.request_queue_depth -= 1
+        service_state.decrement_queue_depth()
         clear_request_context()
 
 
@@ -528,6 +594,19 @@ async def analyze_code(request: Request, analyze_request: AnalyzeRequest):
                     "example": {
                         "error": "ValidationError",
                         "detail": "Query cannot be empty or whitespace only",
+                        "request_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                        "timestamp": "2025-01-24T12:34:56.789Z"
+                    }
+                }
+            }
+        },
+        401: {
+            "description": "Authentication failed (missing or invalid API key)",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": "Unauthorized",
+                        "detail": "Invalid or missing API key",
                         "request_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
                         "timestamp": "2025-01-24T12:34:56.789Z"
                     }
@@ -578,6 +657,8 @@ async def search_similar(request: Request, search_request: SearchSimilarRequest)
     })
     
     try:
+        _enforce_api_auth(request)
+
         # Check if orchestrator is ready
         if not service_state.orchestrator:
             logger.error("Workflow orchestrator not initialized", extra={"request_id": request_id})
@@ -670,6 +751,19 @@ async def search_similar(request: Request, search_request: SearchSimilarRequest)
                 }
             }
         },
+        401: {
+            "description": "Authentication failed (missing or invalid API key)",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": "Unauthorized",
+                        "detail": "Invalid or missing API key",
+                        "request_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                        "timestamp": "2025-01-24T12:34:56.789Z"
+                    }
+                }
+            }
+        },
         503: {
             "description": "Service unavailable (semantic scanning not enabled)",
             "content": {
@@ -685,7 +779,7 @@ async def search_similar(request: Request, search_request: SearchSimilarRequest)
         }
     }
 )
-async def get_knowledge_base_stats():
+async def get_knowledge_base_stats(request: Request):
     """
     Get statistics about the knowledge base.
     
@@ -701,6 +795,8 @@ async def get_knowledge_base_stats():
     })
     
     try:
+        _enforce_api_auth(request)
+
         # Check if orchestrator is ready
         if not service_state.orchestrator:
             logger.error("Workflow orchestrator not initialized", extra={"request_id": request_id})
@@ -830,7 +926,7 @@ async def health_check():
         vllm_loaded=service_state.vllm_loaded,
         workflow_ready=service_state.workflow_ready,
         uptime_seconds=uptime,
-        request_queue_depth=service_state.request_queue_depth
+        request_queue_depth=service_state.get_queue_depth()
     )
 
 
