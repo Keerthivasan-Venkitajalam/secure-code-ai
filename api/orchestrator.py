@@ -8,6 +8,8 @@ import asyncio
 import time
 import uuid
 import logging
+import threading
+from difflib import unified_diff
 from typing import Optional, Any
 
 from agent.graph import create_workflow
@@ -434,7 +436,7 @@ class WorkflowOrchestrator:
             Final workflow state
         """
         # Run synchronous workflow in thread pool to avoid blocking
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         final_state = await loop.run_in_executor(
             None,
             self._workflow.invoke,
@@ -651,13 +653,15 @@ FIXED CODE:
         
         if patched_code != code:
             # Generate diff
-            original_lines = code.split('\n')
-            patched_lines = patched_code.split('\n')
-            diff_lines = []
-            for i, (orig, patch) in enumerate(zip(original_lines, patched_lines)):
-                if orig != patch:
-                    diff_lines.append(f"- {orig}")
-                    diff_lines.append(f"+ {patch}")
+            diff_lines = list(
+                unified_diff(
+                    code.splitlines(),
+                    patched_code.splitlines(),
+                    fromfile="original.py",
+                    tofile="patched.py",
+                    lineterm="",
+                )
+            )
             diff = '\n'.join(diff_lines) if diff_lines else "Template-based fix applied"
             
             patches.append(
@@ -679,6 +683,7 @@ FIXED CODE:
 
 # Global orchestrator instance
 _orchestrator: Optional[WorkflowOrchestrator] = None
+_orchestrator_lock = threading.Lock()
 
 
 def get_orchestrator(vllm_client: Optional[VLLMClient] = None) -> WorkflowOrchestrator:
@@ -692,9 +697,11 @@ def get_orchestrator(vllm_client: Optional[VLLMClient] = None) -> WorkflowOrches
         Global WorkflowOrchestrator instance
     """
     global _orchestrator
-    
+
     if _orchestrator is None:
-        _orchestrator = WorkflowOrchestrator(vllm_client=vllm_client)
+        with _orchestrator_lock:
+            if _orchestrator is None:
+                _orchestrator = WorkflowOrchestrator(vllm_client=vllm_client)
     
     return _orchestrator
 
