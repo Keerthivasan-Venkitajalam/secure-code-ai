@@ -47,18 +47,10 @@ class TestEndToEndWorkflow:
         # Verify Scanner detected vulnerabilities
         assert "vulnerabilities" in final_state
         vulnerabilities = final_state["vulnerabilities"]
-        
-        # Note: Scanner may not detect all SQL injection patterns depending on implementation
-        # The AST-based scanner should detect f-string usage in execute() calls
-        # If no vulnerabilities detected, that's acceptable for this test (Scanner may need enhancement)
-        if len(vulnerabilities) == 0:
-            print("\nNote: Scanner did not detect SQL injection (may need pattern enhancement)")
-            # Still verify workflow completed without errors
-            assert "errors" in final_state
-            return
-        
-        # If vulnerabilities were detected, verify they have correct structure
-        assert len(vulnerabilities) > 0, "Scanner detected vulnerabilities"
+
+        assert len(vulnerabilities) > 0, "Scanner should detect SQL injection vulnerabilities"
+        sql_vulns = [v for v in vulnerabilities if v.vuln_type == "SQL Injection"]
+        assert len(sql_vulns) > 0, "Expected at least one SQL Injection finding"
         
         # Verify vulnerability has required fields
         first_vuln = vulnerabilities[0]
@@ -170,17 +162,10 @@ class TestEndToEndWorkflow:
         # Verify Scanner detected vulnerabilities
         assert "vulnerabilities" in final_state
         vulnerabilities = final_state["vulnerabilities"]
-        
-        # Note: Scanner may not detect all path traversal patterns depending on implementation
-        # If no vulnerabilities detected, that's acceptable for this test (Scanner may need enhancement)
-        if len(vulnerabilities) == 0:
-            print("\nNote: Scanner did not detect path traversal (may need pattern enhancement)")
-            # Still verify workflow completed without errors
-            assert "errors" in final_state
-            return
-        
-        # If vulnerabilities were detected, verify they have correct structure
-        assert len(vulnerabilities) > 0, "Scanner detected vulnerabilities"
+
+        assert len(vulnerabilities) > 0, "Scanner should detect path traversal vulnerabilities"
+        path_vulns = [v for v in vulnerabilities if v.vuln_type == "Path Traversal"]
+        assert len(path_vulns) > 0, "Expected at least one Path Traversal finding"
         
         # Verify vulnerability has required fields
         first_vuln = vulnerabilities[0]
@@ -341,15 +326,10 @@ def broken_function(
         # Verify multiple vulnerabilities detected
         assert "vulnerabilities" in final_state
         vulnerabilities = final_state["vulnerabilities"]
-        
-        # Note: Scanner may not detect all SQL injection patterns
-        # If no vulnerabilities detected, that's acceptable (Scanner may need enhancement)
-        if len(vulnerabilities) == 0:
-            print("\nNote: Scanner did not detect SQL injection (may need pattern enhancement)")
-            return
-        
-        # If vulnerabilities were detected, verify structure
-        assert len(vulnerabilities) >= 1, "Should detect at least one vulnerability"
+
+        assert len(vulnerabilities) >= 2, "Should detect multiple vulnerabilities in vulnerable_sql.py"
+        sql_vulns = [v for v in vulnerabilities if v.vuln_type == "SQL Injection"]
+        assert len(sql_vulns) >= 2, "Expected multiple SQL Injection findings"
         
         # Verify each vulnerability has unique location
         locations = [v.location for v in vulnerabilities]
