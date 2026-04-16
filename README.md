@@ -11,6 +11,7 @@ Stop manually hunting security issues. Submit code, get prioritized vulnerabilit
 [![Python](https://img.shields.io/badge/python-3.10%2B-3776AB.svg?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-API-009688.svg?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![LangGraph](https://img.shields.io/badge/LangGraph-Agent%20Workflow-111827.svg?style=for-the-badge)](https://www.langchain.com/langgraph)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/Keerthivasan-Venkitajalam/secure-code-ai)
 
 [About](#about-the-project) | [Architecture](#system-architecture) | [Agent Flow](#the-4-stage-agent-flow) | [Getting Started](#getting-started) | [API](#api-reference) | [Security](#security)
 
