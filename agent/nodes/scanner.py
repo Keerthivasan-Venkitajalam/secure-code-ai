@@ -6,12 +6,13 @@ Identifies potential vulnerability hotspots using AST analysis and LLM-powered r
 import ast
 import re
 import logging
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Optional, Tuple, Set
 import time
 
 from ..state import AgentState, Vulnerability
 from ..llm_client import LLMClient
 from ..prompts import HYPOTHESIS_PROMPT, SLICING_PROMPT
+from .response_cleaning import clean_python_code_response
 
 
 logger = logging.getLogger(__name__)
@@ -111,13 +112,14 @@ class ScannerAgent:
         except Exception as e:
             state["errors"].append(f"Scanner Agent: Error - {str(e)}")
         
-        # Deduplicate vulnerabilities by location
+        # Deduplicate vulnerabilities by (location, vulnerability type)
         unique_vulns = []
-        seen_locations = set()
+        seen_findings = set()
         for vuln in vulnerabilities:
-            if vuln.location not in seen_locations:
+            dedup_key = (vuln.location, vuln.vuln_type)
+            if dedup_key not in seen_findings:
                 unique_vulns.append(vuln)
-                seen_locations.add(vuln.location)
+                seen_findings.add(dedup_key)
         
         # LLM-powered enhancements (Requirements 1.1, 1.2, 1.3)
         if self.llm_client:
@@ -371,6 +373,8 @@ Example: TRUE_POSITIVE: 0.9
             # Track variables that hold potentially dangerous strings within function scopes
             if isinstance(node, ast.FunctionDef):
                 tainted_vars = set()
+                user_input_vars: Set[str] = {arg.arg for arg in node.args.args}
+                path_tainted_vars: Set[str] = set(user_input_vars)
                 
                 for child in ast.walk(node):
                     # Track assignments of f-strings or string concatenation
@@ -380,8 +384,14 @@ Example: TRUE_POSITIVE: 0.9
                                 # Check value being assigned
                                 if isinstance(child.value, ast.JoinedStr):  # f-string
                                     tainted_vars.add(target.id)
+                                    if self._expr_references_names(child.value, path_tainted_vars):
+                                        path_tainted_vars.add(target.id)
                                 elif isinstance(child.value, ast.BinOp) and isinstance(child.value.op, ast.Add):  # Concatenation
                                     tainted_vars.add(target.id)
+                                    if self._expr_references_names(child.value, path_tainted_vars):
+                                        path_tainted_vars.add(target.id)
+                                elif isinstance(child.value, ast.Name) and child.value.id in path_tainted_vars:
+                                    path_tainted_vars.add(target.id)
                     
                     # Check for dangerous function calls
                     if isinstance(child, ast.Call):
@@ -441,8 +451,36 @@ Example: TRUE_POSITIVE: 0.9
                                         description=f"SQL query variable '{arg.id}' constructed via string formatting",
                                         confidence=0.85
                                     ))
+
+                        # Check for path traversal usage in file operations
+                        if isinstance(child.func, ast.Name) and child.func.id == 'open' and child.args:
+                            arg = child.args[0]
+
+                            if isinstance(arg, (ast.JoinedStr, ast.BinOp)):
+                                vulnerabilities.append(Vulnerability(
+                                    location=f"{file_path}:{child.lineno}",
+                                    vuln_type="Path Traversal",
+                                    severity="HIGH",
+                                    description="File path is dynamically constructed without sanitization",
+                                    confidence=0.85
+                                ))
+                            elif isinstance(arg, ast.Name) and arg.id in path_tainted_vars:
+                                vulnerabilities.append(Vulnerability(
+                                    location=f"{file_path}:{child.lineno}",
+                                    vuln_type="Path Traversal",
+                                    severity="HIGH",
+                                    description=f"File path variable '{arg.id}' is derived from user input",
+                                    confidence=0.85
+                                ))
         
         return vulnerabilities
+
+    def _expr_references_names(self, expr: ast.AST, names: Set[str]) -> bool:
+        """Return True when an expression references any name from the provided set."""
+        for child in ast.walk(expr):
+            if isinstance(child, ast.Name) and child.id in names:
+                return True
+        return False
     
     def _extract_code_slice(self, code: str, vuln: Vulnerability) -> Optional[str]:
         """
@@ -656,24 +694,7 @@ Example: TRUE_POSITIVE: 0.9
         Returns:
             Cleaned Python code
         """
-        # Remove markdown code blocks
-        if "```python" in response:
-            # Extract code between ```python and ```
-            start = response.find("```python") + len("```python")
-            end = response.find("```", start)
-            if end != -1:
-                response = response[start:end]
-        elif "```" in response:
-            # Generic code block
-            start = response.find("```") + 3
-            end = response.find("```", start)
-            if end != -1:
-                response = response[start:end]
-        
-        # Strip whitespace
-        response = response.strip()
-        
-        return response
+        return clean_python_code_response(response)
     
     def validate_hypothesis(self, vuln: Vulnerability) -> Tuple[bool, Optional[str]]:
         """
