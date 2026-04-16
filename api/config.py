@@ -112,6 +112,14 @@ class APIConfig(BaseSettings):
         ge=1,
         description="Maximum requests per minute per client"
     )
+    enable_api_auth: bool = Field(
+        default=False,
+        description="Require API key authentication for analysis endpoints"
+    )
+    api_key: Optional[str] = Field(
+        default=None,
+        description="API key used for request authentication when auth is enabled"
+    )
     
     # Semantic Scanning Configuration
     enable_semantic_scanning: bool = Field(
