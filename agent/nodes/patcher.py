@@ -7,12 +7,14 @@ import ast
 import logging
 import time
 import re
+from difflib import unified_diff
 from typing import Optional, List, Tuple, Dict
 
 from ..state import AgentState, Patch, VerificationResult, Vulnerability
 from ..llm_client import LLMClient
 from ..prompts import PATCH_PROMPT, get_secure_patterns, format_previous_attempts
 from ..security_metrics import SecurityMetrics, SecurityScore
+from .response_cleaning import clean_python_code_response
 
 # Import PEP 8 tools (Requirement 9.5)
 try:
@@ -242,6 +244,8 @@ class PatcherAgent:
             # Verify function signature preservation (Requirement 3.2)
             if not self._verify_signature_preserved(code, patched_code):
                 logger.warning("Patch modified function signature")
+                # Fail closed: fall back to deterministic template patch that preserves structure.
+                patched_code = self._apply_template_patch(code, vuln.vuln_type)
             
             # Preserve code style (Requirements 9.1, 9.3, 9.4)
             patched_code = self._preserve_code_style(code, patched_code)
@@ -810,22 +814,7 @@ class PatcherAgent:
         Returns:
             Cleaned Python code
         """
-        # Remove markdown code blocks
-        if "```python" in response:
-            start = response.find("```python") + len("```python")
-            end = response.find("```", start)
-            if end != -1:
-                response = response[start:end]
-        elif "```" in response:
-            start = response.find("```") + 3
-            end = response.find("```", start)
-            if end != -1:
-                response = response[start:end]
-        
-        # Strip whitespace
-        response = response.strip()
-        
-        return response
+        return clean_python_code_response(response)
     
     def _apply_template_patch(self, code: str, vuln_type: str) -> str:
         """Apply template-based patch transformations."""
@@ -864,17 +853,19 @@ class PatcherAgent:
     
     def _generate_diff(self, original: str, patched: str) -> str:
         """Generate unified diff between original and patched code."""
-        # Simple line-by-line diff
-        original_lines = original.split('\n')
-        patched_lines = patched.split('\n')
-        
-        diff_lines = []
-        for i, (orig, patch) in enumerate(zip(original_lines, patched_lines)):
-            if orig != patch:
-                diff_lines.append(f"- {orig}")
-                diff_lines.append(f"+ {patch}")
-        
-        return '\n'.join(diff_lines) if diff_lines else "No changes"
+        if original == patched:
+            return "No changes"
+
+        diff_lines = list(
+            unified_diff(
+                original.splitlines(),
+                patched.splitlines(),
+                fromfile="original.py",
+                tofile="patched.py",
+                lineterm="",
+            )
+        )
+        return "\n".join(diff_lines) if diff_lines else "No changes"
     
     def validate_patch(self, patch: Patch, original_code: str) -> Tuple[bool, Optional[str]]:
         """
