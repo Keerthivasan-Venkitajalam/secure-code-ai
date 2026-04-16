@@ -7,9 +7,13 @@ import subprocess
 import tempfile
 import os
 import time
+import logging
 from typing import Optional
 
 from ..state import AgentState, VerificationResult as StateVerificationResult, Contract
+
+
+logger = logging.getLogger(__name__)
 
 
 class SymBotAgent:
