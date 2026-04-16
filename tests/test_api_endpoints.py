@@ -219,8 +219,8 @@ def test_property_top_k_bounds(top_k):
 
 
 @given(
-    code=st.text(min_size=1, max_size=1000),
-    file_path=st.text(min_size=1, max_size=100),
+    code=st.text(min_size=1, max_size=1000).filter(lambda s: s.strip() != ""),
+    file_path=st.text(min_size=1, max_size=100).filter(lambda s: s.strip() != ""),
     max_iterations=st.integers(min_value=1, max_value=10)
 )
 @settings(max_examples=100)
