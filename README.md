@@ -6,7 +6,7 @@
 
 Stop manually hunting security issues. Submit code, get prioritized vulnerabilities, verification feedback, and patch candidates.
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg?style=for-the-badge)](README.md)
+[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg?style=for-the-badge)](README.md)
 [![License](https://img.shields.io/badge/license-Proprietary-red.svg?style=for-the-badge)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10%2B-3776AB.svg?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-API-009688.svg?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
@@ -217,6 +217,9 @@ python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 
+# Optional: full research and benchmarking stack
+# pip install -r requirements-full.txt
+
 export SECUREAI_USE_GEMINI=true
 export SECUREAI_GEMINI_API_KEY=your_key_here
 python -m uvicorn api.server:app --host 127.0.0.1 --port 8000 --reload
@@ -263,6 +266,8 @@ Copy [deployment/.env.example](deployment/.env.example) to `.env` and set values
 | `SECUREAI_SYMBOT_TIMEOUT` | Symbolic execution timeout |
 | `SECUREAI_RATE_LIMIT_REQUESTS` | Per-minute request limit |
 | `SECUREAI_ENABLE_DOCS` | Enable Swagger/ReDoc endpoints |
+| `SECUREAI_ENABLE_API_AUTH` | Require API key auth for analysis endpoints |
+| `SECUREAI_API_KEY` | API key for auth (sent via `X-API-Key` or `Authorization: Bearer`) |
 
 ---
 
@@ -277,6 +282,8 @@ Copy [deployment/.env.example](deployment/.env.example) to `.env` and set values
 - `GET /health/ready` - Readiness for traffic
 - `GET /docs` - Swagger docs (when enabled)
 - `GET /redoc` - ReDoc docs (when enabled)
+
+When `SECUREAI_ENABLE_API_AUTH=true`, analysis endpoints require `X-API-Key` or `Authorization: Bearer <key>`.
 
 ### Analyze Request
 
@@ -340,7 +347,7 @@ secure-code-ai/
 |---------|-----|
 | Service not reachable | Check `docker-compose logs -f` and verify port 8000 |
 | 429 rate limit errors | Increase `SECUREAI_RATE_LIMIT_REQUESTS` for trusted clients |
-| Missing dependencies | Re-run `pip install -r requirements.txt` |
+| Missing dependencies | Re-run `pip install -r requirements.txt` (or `requirements-full.txt` for full stack) |
 | Extension cannot connect | Verify `securecodai.apiEndpoint` and API health |
 
 ---
